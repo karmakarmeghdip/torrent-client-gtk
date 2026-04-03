@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "gtkx": {
+      "command": "bunx",
+      "args": [
+        "@gtkx/mcp@latest"
+      ],
+      "type": "stdio",
+      "trust": true
+    }
+  }
+}

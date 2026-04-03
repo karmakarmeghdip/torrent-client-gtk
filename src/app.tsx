@@ -1,32 +1,60 @@
-import * as Gtk from "@gtkx/ffi/gtk";
-import { GtkApplicationWindow, GtkBox, GtkButton, GtkLabel, quit } from "@gtkx/react";
+import { AdwApplicationWindow, AdwToolbarView, quit } from "@gtkx/react";
 import { useState } from "react";
+import { injectStyles } from "./styles";
+import { useTorrents } from "./hooks/useTorrents";
+import { Header } from "./components/Header";
+import { TorrentList } from "./components/TorrentList";
+import { PreferencesDialog } from "./components/PreferencesDialog";
+import { AboutDialog } from "./components/AboutDialog";
+
+injectStyles();
 
 export const App = () => {
-    const [count, setCount] = useState(0);
+  const { torrents, toggleStatus, deleteTorrent, resumeAll, pauseAll } =
+    useTorrents();
 
-    return (
-        <GtkApplicationWindow title="Torrent Client Gtk" defaultWidth={400} defaultHeight={300} onClose={quit}>
-            <GtkBox
-                orientation={Gtk.Orientation.VERTICAL}
-                spacing={20}
-                marginTop={40}
-                marginBottom={40}
-                marginStart={40}
-                marginEnd={40}
-                valign={Gtk.Align.CENTER}
-                halign={Gtk.Align.CENTER}
-            >
-                <GtkLabel label="Welcome to GTKX!" cssClasses={["title-1"]} />
-                <GtkLabel label={`Count: ${count}`} cssClasses={["title-2"]} />
-                <GtkButton
-                    label="Increment"
-                    onClicked={() => setCount((c) => c + 1)}
-                    cssClasses={["suggested-action", "pill"]}
-                />
-            </GtkBox>
-        </GtkApplicationWindow>
-    );
+  const [showAbout, setShowAbout] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [notifications, setNotifications] = useState(true);
+
+  return (
+    <AdwApplicationWindow
+      title="Torrent Client"
+      defaultWidth={800}
+      defaultHeight={600}
+      onClose={quit}
+    >
+      <AdwToolbarView>
+        <AdwToolbarView.AddTopBar>
+          <Header
+            onShowPreferences={() => setShowPreferences(true)}
+            onShowAbout={() => setShowAbout(true)}
+            onResumeAll={resumeAll}
+            onPauseAll={pauseAll}
+          />
+        </AdwToolbarView.AddTopBar>
+
+        <TorrentList
+          torrents={torrents}
+          onToggleStatus={toggleStatus}
+          onDelete={deleteTorrent}
+        />
+
+        {showPreferences && (
+          <PreferencesDialog
+            darkMode={darkMode}
+            onDarkModeToggle={() => setDarkMode(!darkMode)}
+            notifications={notifications}
+            onNotificationsToggle={() => setNotifications(!notifications)}
+            onClosed={() => setShowPreferences(false)}
+          />
+        )}
+
+        {showAbout && <AboutDialog onClosed={() => setShowAbout(false)} />}
+      </AdwToolbarView>
+    </AdwApplicationWindow>
+  );
 };
 
 export default App;

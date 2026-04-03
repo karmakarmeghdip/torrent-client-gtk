@@ -12,6 +12,7 @@
       },
       "devDependencies": {
         "@gtkx/cli": "^0.21.0",
+        "@gtkx/testing": "^0.21.0",
         "@types/react": "^19.2.14",
         "typescript": "^6.0.2",
         "vite": "^8.0.3",
@@ -65,6 +66,8 @@
     "@gtkx/native-linux-x64": ["@gtkx/native-linux-x64@0.21.0", "", { "os": "linux", "cpu": "x64" }, "sha512-KjzcUsLA6oRQNgtKyvJoN2whduoICbxt/suoteByfDhlOQEr6XILhyAlcmKTSQ8FgdndnpofNpwQeNGe+4ay2w=="],
 
     "@gtkx/react": ["@gtkx/react@0.21.0", "", { "dependencies": { "@gtkx/ffi": "0.21.0", "@gtkx/gir": "0.21.0", "react-reconciler": "^0.33.0" }, "peerDependencies": { "react": "^19" } }, "sha512-XPRRIJ/pMyOI48gyUXYQae6BgSEU5IraJexeV4gajBIOPQJD5rDFoZt4nX/jMQvcVofsSqLdX4w7/J+3io9PiA=="],
+
+    "@gtkx/testing": ["@gtkx/testing@0.21.0", "", { "dependencies": { "@gtkx/ffi": "0.21.0", "@gtkx/react": "0.21.0" } }, "sha512-wKUcJtHNXC8+gaGSdEzrtCjC3lJvlH2/TCA9MdE96jhSUs634VWlhczBTiroSnHvHwqOcNLnwEPppQBcztv9gA=="],
 
     "@hono/node-server": ["@hono/node-server@1.19.12", "", { "peerDependencies": { "hono": "^4" } }, "sha512-txsUW4SQ1iilgE0l9/e9VQWmELXifEFvmdA1j6WFh/aFPj99hIntrSsq/if0UWyGVkmrRPKA1wCeP+UCr1B9Uw=="],
 
