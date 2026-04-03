@@ -1,0 +1,30 @@
+{
+  "name": "torrent-client-gtk",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "gtkx dev src/dev.tsx",
+    "build": "gtkx build",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/bundle.js"
+  },
+  "gtkx": {
+    "appId": "com.torrent.client"
+  },
+  "dependencies": {
+    "@gtkx/css": "^0.21.0",
+    "@gtkx/ffi": "^0.21.0",
+    "@gtkx/react": "^0.21.0",
+    "react": "^19.2.4"
+  },
+  "devDependencies": {
+    "@gtkx/cli": "^0.21.0",
+    "@types/react": "^19.2.14",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.3"
+  },
+  "trustedDependencies": [
+    "@swc/core"
+  ]
+}
