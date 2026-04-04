@@ -1,63 +1,26 @@
 import { atom, type Atom } from "jotai";
-import { Torrent, TorrentStatus } from "../types";
-
-// Initial dummy data
-const initialTorrents: Torrent[] = [
-  {
-    id: "1",
-    name: "Ubuntu 24.04 LTS Desktop (64-bit)",
-    size: "4.5 GB",
-    progress: 0.65,
-    speed: "3.2 MB/s",
-    status: "Downloading",
-    peers: 45,
-  },
-  {
-    id: "2",
-    name: "Arch Linux 2024.01.01 x86_64",
-    size: "900 MB",
-    progress: 1.0,
-    speed: "0 B/s",
-    status: "Seeding",
-    peers: 12,
-  },
-  {
-    id: "3",
-    name: "Fedora Workstation 40 Live ISO",
-    size: "2.1 GB",
-    progress: 0.15,
-    speed: "800 KB/s",
-    status: "Downloading",
-    peers: 8,
-  },
-  {
-    id: "4",
-    name: "Debian 12.5.0 amd64 netinst",
-    size: "628 MB",
-    progress: 0.0,
-    speed: "0 B/s",
-    status: "Paused",
-    peers: 0,
-  },
-];
-
-// Map of all torrents by id - single source of truth
-const initialTorrentsMap = new Map<string, Torrent>(
-  initialTorrents.map((t) => [t.id, t]),
-);
+import type { Torrent, TorrentStatus, AppConfig } from "../types";
 
 // ============================================
 // Base Atoms
 // ============================================
 
 /** Map containing all torrent data - keyed by torrent ID */
-export const torrentsMapAtom = atom<Map<string, Torrent>>(initialTorrentsMap);
+export const torrentsMapAtom = atom<Map<string, Torrent>>(new Map());
 
 /** Ordered list of torrent IDs for list rendering */
-export const torrentIdsAtom = atom<string[]>(initialTorrents.map((t) => t.id));
+export const torrentIdsAtom = atom<string[]>([]);
 
-/** Simulation running state (for dummy data updates) */
-export const simulationEnabledAtom = atom<boolean>(true);
+/** App configuration */
+export const configAtom = atom<AppConfig>({
+  downloadPath: "",
+  autoStart: true,
+  notifications: true,
+  darkMode: false,
+});
+
+/** Whether the torrent service is initialized */
+export const serviceInitializedAtom = atom<boolean>(false);
 
 // ============================================
 // Derived Atoms
@@ -121,7 +84,7 @@ export const toggleTorrentStatusAtom = atom(null, (get, set, id: string) => {
       newSpeed = "0 B/s";
     } else {
       newStatus = "Downloading";
-      newSpeed = "1.5 MB/s";
+      newSpeed = "0 B/s";
     }
   }
 
@@ -147,7 +110,7 @@ export const resumeAllTorrentsAtom = atom(null, (get, set) => {
     if (torrent.status === "Paused") {
       const newStatus: TorrentStatus =
         torrent.progress >= 1.0 ? "Seeding" : "Downloading";
-      const newSpeed = torrent.progress >= 1.0 ? "0 B/s" : "2.0 MB/s";
+      const newSpeed = torrent.progress >= 1.0 ? "0 B/s" : "0 B/s";
       map.set(id, { ...torrent, status: newStatus, speed: newSpeed });
     }
   }
@@ -168,7 +131,7 @@ export const pauseAllTorrentsAtom = atom(null, (get, set) => {
   set(torrentsMapAtom, map);
 });
 
-/** Update torrent progress (used by simulation / webtorrent) */
+/** Update torrent progress (used by webtorrent service) */
 export const updateTorrentProgressAtom = atom(
   null,
   (get, set, { id, progress, speed, peers }: {
@@ -210,49 +173,27 @@ export const addTorrentAtom = atom(null, (get, set, torrent: Torrent) => {
   set(torrentIdsAtom, ids);
 });
 
-// ============================================
-// Simulation (dummy data updates)
-// ============================================
-
-/** Atom to track simulation interval */
-export const simulationIntervalAtom = atom<number | null>(null);
-
-/** Start/stop simulation */
-export const setSimulationEnabledAtom = atom(
+/** Update app configuration */
+export const updateConfigAtom = atom(
   null,
-  (get, set, enabled: boolean) => {
-    // Clear existing interval
-    const existingInterval = get(simulationIntervalAtom);
-    if (existingInterval) {
-      clearInterval(existingInterval);
-      set(simulationIntervalAtom, null);
-    }
+  (get, set, updates: Partial<AppConfig>) => {
+    const current = get(configAtom);
+    set(configAtom, { ...current, ...updates });
+  },
+);
 
-    set(simulationEnabledAtom, enabled);
+/** Set the entire config atom */
+export const setConfigAtom = atom(
+  null,
+  (get, set, config: AppConfig) => {
+    set(configAtom, config);
+  },
+);
 
-    if (enabled) {
-      const interval = setInterval(() => {
-        const map = get(torrentsMapAtom);
-        const newMap = new Map(map);
-        let hasChanges = false;
-
-        for (const [id, torrent] of newMap) {
-          if (torrent.status === "Downloading") {
-            const newProgress = Math.min(torrent.progress + 0.01, 1.0);
-            const newStatus: TorrentStatus = newProgress >= 1.0
-              ? "Seeding"
-              : "Downloading";
-            newMap.set(id, { ...torrent, progress: newProgress, status: newStatus });
-            hasChanges = true;
-          }
-        }
-
-        if (hasChanges) {
-          set(torrentsMapAtom, newMap);
-        }
-      }, 1000);
-
-      set(simulationIntervalAtom, interval);
-    }
+/** Set service initialized state */
+export const setServiceInitializedAtom = atom(
+  null,
+  (get, set, initialized: boolean) => {
+    set(serviceInitializedAtom, initialized);
   },
 );

@@ -6,12 +6,14 @@ import {
   GtkPopoverMenu,
   quit,
 } from "@gtkx/react";
+import { AddTorrentPopover } from "./AddTorrentPopover";
 
 interface HeaderProps {
   onShowPreferences: () => void;
   onShowAbout: () => void;
   onResumeAll: () => void;
   onPauseAll: () => void;
+  downloadPath: string;
 }
 
 export const Header = ({
@@ -19,10 +21,11 @@ export const Header = ({
   onShowAbout,
   onResumeAll,
   onPauseAll,
+  downloadPath,
 }: HeaderProps) => (
   <AdwHeaderBar titleWidget={<AdwWindowTitle title="Downloads" subtitle="" />}>
     <AdwHeaderBar.PackStart>
-      <GtkButton iconName="list-add-symbolic" tooltipText="Add Torrent" />
+      <AddTorrentPopover downloadPath={downloadPath} />
     </AdwHeaderBar.PackStart>
     <AdwHeaderBar.PackEnd>
       <GtkMenuButton

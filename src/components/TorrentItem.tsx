@@ -1,7 +1,8 @@
 import * as Gtk from "@gtkx/ffi/gtk";
 import { GtkBox, GtkButton, GtkLabel, GtkProgressBar } from "@gtkx/react";
-import { useAtom, useSetAtom } from "jotai";
-import { getTorrentAtom, toggleTorrentStatusAtom, deleteTorrentAtom } from "../store/torrentStore";
+import { useAtom } from "jotai";
+import { getTorrentAtom } from "../store/torrentStore";
+import { pauseTorrent, resumeTorrent, removeTorrent } from "../services/torrentService";
 
 interface TorrentItemProps {
   torrentId: string;
@@ -9,12 +10,22 @@ interface TorrentItemProps {
 
 export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
   const [torrent] = useAtom(getTorrentAtom(torrentId));
-  const toggleStatus = useSetAtom(toggleTorrentStatusAtom);
-  const deleteTorrent = useSetAtom(deleteTorrentAtom);
 
   if (!torrent) return null;
 
   const t = torrent;
+
+  const handleToggleStatus = () => {
+    if (t.status === "Downloading" || t.status === "Seeding") {
+      pauseTorrent(t.id);
+    } else {
+      resumeTorrent(t.id);
+    }
+  };
+
+  const handleDelete = () => {
+    removeTorrent(t.id, false);
+  };
 
   return (
     <GtkBox
@@ -49,7 +60,7 @@ export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
               <>
                 <GtkLabel label="•" cssClasses={["dim-label"]} />
                 <GtkLabel
-                  label={`Ratio: 1.5 - ${t.peers} peers`}
+                  label={`${t.peers} peers`}
                   cssClasses={["dim-label"]}
                 />
               </>
@@ -69,13 +80,13 @@ export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
                 : "Resume"
             }
             cssClasses={["circular"]}
-            onClicked={() => toggleStatus(t.id)}
+            onClicked={handleToggleStatus}
           />
           <GtkButton
             iconName="edit-delete-symbolic"
             tooltipText="Remove Torrent"
             cssClasses={["circular"]}
-            onClicked={() => deleteTorrent(t.id)}
+            onClicked={handleDelete}
           />
         </GtkBox>
       </GtkBox>
