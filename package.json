@@ -16,7 +16,9 @@
     "@gtkx/css": "^0.21.0",
     "@gtkx/ffi": "^0.21.0",
     "@gtkx/react": "^0.21.0",
-    "react": "^19.2.4"
+    "jotai": "^2.19.0",
+    "react": "^19.2.4",
+    "webtorrent": "^2.8.5"
   },
   "devDependencies": {
     "@gtkx/cli": "^0.21.0",
@@ -26,6 +28,10 @@
     "vite": "^8.0.3"
   },
   "trustedDependencies": [
-    "@swc/core"
+    "@swc/core",
+    "bufferutil",
+    "node-datachannel",
+    "utf-8-validate",
+    "utp-native"
   ]
 }

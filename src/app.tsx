@@ -1,7 +1,9 @@
 import { AdwApplicationWindow, AdwToolbarView, quit } from "@gtkx/react";
 import { useState } from "react";
+import { useSetAtom } from "jotai";
 import { injectStyles } from "./styles";
-import { useTorrents } from "./hooks/useTorrents";
+import { useTorrentSimulation } from "./hooks/useTorrentSimulation";
+import { resumeAllTorrentsAtom, pauseAllTorrentsAtom } from "./store/torrentStore";
 import { Header } from "./components/Header";
 import { TorrentList } from "./components/TorrentList";
 import { PreferencesDialog } from "./components/PreferencesDialog";
@@ -10,8 +12,11 @@ import { AboutDialog } from "./components/AboutDialog";
 injectStyles();
 
 export const App = () => {
-  const { torrents, toggleStatus, deleteTorrent, resumeAll, pauseAll } =
-    useTorrents();
+  // Initialize simulation for dummy data
+  useTorrentSimulation();
+
+  const resumeAll = useSetAtom(resumeAllTorrentsAtom);
+  const pauseAll = useSetAtom(pauseAllTorrentsAtom);
 
   const [showAbout, setShowAbout] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
@@ -35,11 +40,7 @@ export const App = () => {
           />
         </AdwToolbarView.AddTopBar>
 
-        <TorrentList
-          torrents={torrents}
-          onToggleStatus={toggleStatus}
-          onDelete={deleteTorrent}
-        />
+        <TorrentList />
 
         {showPreferences && (
           <PreferencesDialog
