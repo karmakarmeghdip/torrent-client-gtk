@@ -114,7 +114,12 @@
         "noCommaOperator": "error",
         "noEmptyTypeParameters": "error",
         "noExcessiveCognitiveComplexity": "error",
-        "noExcessiveLinesPerFunction": "error",
+        "noExcessiveLinesPerFunction": {
+          "level": "error",
+          "options": {
+            "maxLines": 80
+          }
+        },
         "noExtraBooleanCast": "error",
         "noFlatMapIdentity": "error",
         "noForEach": "error",

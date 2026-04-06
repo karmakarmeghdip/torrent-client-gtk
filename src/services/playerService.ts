@@ -22,9 +22,9 @@ export function openPlayer(): void {
 }
 
 /** Stop the current video playback */
-export async function stopVideoPlayback(): Promise<void> {
+export function stopVideoPlayback(): void {
   const activeTorrents = getActiveTorrents();
-  await stopVideoStreaming(activeTorrents);
+  stopVideoStreaming(activeTorrents);
 
   if (closePlayerCallback) {
     closePlayerCallback();

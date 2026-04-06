@@ -16,7 +16,6 @@ import {
 import { useAtom } from "jotai";
 import { useCallback, useMemo, useState } from "react";
 import type { Torrent as WebTorrentTorrent } from "webtorrent";
-import { stopStreaming } from "../services/videoStreamingService";
 import { closePlayerAtom, playerStateAtom } from "../store/torrentStore";
 
 interface VideoPlayerPageProps {
@@ -25,10 +24,101 @@ interface VideoPlayerPageProps {
   windowRef?: React.RefObject<Adw.ApplicationWindow | null>;
 }
 
-export const VideoPlayerPage = ({ activeTorrents, onBack, windowRef }: VideoPlayerPageProps) => {
+interface ErrorViewProps {
+  streamUrl: string;
+}
+
+const ErrorView = ({ streamUrl }: ErrorViewProps) => (
+  <AdwNavigationView.Page id="video-player-error" title="Playback Error">
+    <AdwToolbarView>
+      <AdwToolbarView.AddTopBar>
+        <AdwHeaderBar titleWidget={<AdwWindowTitle title="Playback Error" subtitle="" />} />
+      </AdwToolbarView.AddTopBar>
+
+      <GtkBox
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={16}
+        vexpand
+        hexpand
+        valign={Gtk.Align.CENTER}
+        halign={Gtk.Align.CENTER}
+        marginStart={32}
+        marginEnd={32}
+      >
+        <GtkImage iconName="dialog-error-symbolic" pixelSize={64} />
+        <GtkLabel label="Unable to play video" cssClasses={["heading"]} />
+        <GtkLabel
+          label="The video format may not be supported by the system player. You can copy the URL below and open it in VLC or your browser."
+          wrap
+          maxWidthChars={50}
+          justify={Gtk.Justification.CENTER}
+        />
+        <GtkBox
+          orientation={Gtk.Orientation.HORIZONTAL}
+          spacing={8}
+          cssClasses={["card"]}
+          marginTop={16}
+        >
+          <GtkLabel
+            label={streamUrl || ""}
+            hexpand
+            marginStart={12}
+            marginEnd={12}
+            marginTop={12}
+            marginBottom={12}
+            selectable
+          />
+        </GtkBox>
+      </GtkBox>
+    </AdwToolbarView>
+  </AdwNavigationView.Page>
+);
+
+interface PlayerHeaderProps {
+  isFullscreen: boolean;
+  onFullscreenToggle: () => void;
+}
+
+const PlayerHeader = ({ isFullscreen, onFullscreenToggle }: PlayerHeaderProps) => (
+  <AdwToolbarView.AddTopBar>
+    <AdwHeaderBar titleWidget={<AdwWindowTitle title="Video Player" subtitle="" />}>
+      <AdwHeaderBar.PackEnd>
+        <GtkButton
+          iconName={isFullscreen ? "view-restore-symbolic" : "view-fullscreen-symbolic"}
+          tooltipText={isFullscreen ? "Exit Fullscreen (F11)" : "Fullscreen (F11)"}
+          onClicked={onFullscreenToggle}
+        />
+      </AdwHeaderBar.PackEnd>
+    </AdwHeaderBar>
+  </AdwToolbarView.AddTopBar>
+);
+
+interface VideoPlayerProps {
+  videoFile: Gio.File;
+  onVideoPressed: (nPress: number) => void;
+}
+
+const VideoPlayer = ({ videoFile, onVideoPressed }: VideoPlayerProps) => (
+  <>
+    <GtkVideo
+      file={videoFile}
+      autoplay
+      vexpand
+      hexpand
+      graphicsOffload={Gtk.GraphicsOffloadEnabled.ENABLED}
+    />
+    <GtkGestureClick onPressed={onVideoPressed} />
+  </>
+);
+
+export const VideoPlayerPage = ({
+  activeTorrents: _activeTorrents,
+  onBack: _onBack,
+  windowRef,
+}: VideoPlayerPageProps) => {
   const [playerState] = useAtom(playerStateAtom);
-  const [, closePlayer] = useAtom(closePlayerAtom);
-  const [hasError, _setHasError] = useState(false);
+  const [, _closePlayer] = useAtom(closePlayerAtom);
+  const [hasError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Convert stream URL to Gio.File for GtkVideo
@@ -38,19 +128,10 @@ export const VideoPlayerPage = ({ activeTorrents, onBack, windowRef }: VideoPlay
     }
     try {
       return Gio.fileNewForUri(playerState.streamUrl);
-    } catch (_error) {
+    } catch {
       return null;
     }
   }, [playerState.streamUrl]);
-
-  const _handleBack = useCallback(() => {
-    // Stop streaming first (fire and forget)
-    void stopStreaming(activeTorrents);
-    // Close player state
-    closePlayer();
-    // Navigate back
-    onBack();
-  }, [activeTorrents, closePlayer, onBack]);
 
   const handleFullscreen = useCallback(() => {
     if (windowRef?.current) {
@@ -64,56 +145,6 @@ export const VideoPlayerPage = ({ activeTorrents, onBack, windowRef }: VideoPlay
     }
   }, [isFullscreen, windowRef]);
 
-  // If there's an error (likely unsupported codec), show the URL
-  if (hasError) {
-    return (
-      <AdwNavigationView.Page id="video-player-error" title="Playback Error">
-        <AdwToolbarView>
-          <AdwToolbarView.AddTopBar>
-            <AdwHeaderBar titleWidget={<AdwWindowTitle title="Playback Error" subtitle="" />} />
-          </AdwToolbarView.AddTopBar>
-
-          <GtkBox
-            orientation={Gtk.Orientation.VERTICAL}
-            spacing={16}
-            vexpand
-            hexpand
-            valign={Gtk.Align.CENTER}
-            halign={Gtk.Align.CENTER}
-            marginStart={32}
-            marginEnd={32}
-          >
-            <GtkImage iconName="dialog-error-symbolic" pixelSize={64} />
-            <GtkLabel label="Unable to play video" cssClasses={["heading"]} />
-            <GtkLabel
-              label="The video format may not be supported by the system player. You can copy the URL below and open it in VLC or your browser."
-              wrap
-              maxWidthChars={50}
-              justify={Gtk.Justification.CENTER}
-            />
-            <GtkBox
-              orientation={Gtk.Orientation.HORIZONTAL}
-              spacing={8}
-              cssClasses={["card"]}
-              marginTop={16}
-            >
-              <GtkLabel
-                label={playerState.streamUrl || ""}
-                hexpand
-                marginStart={12}
-                marginEnd={12}
-                marginTop={12}
-                marginBottom={12}
-                selectable
-              />
-            </GtkBox>
-          </GtkBox>
-        </AdwToolbarView>
-      </AdwNavigationView.Page>
-    );
-  }
-
-  // Handle double-click on video to toggle fullscreen
   const handleVideoPressed = useCallback(
     (nPress: number) => {
       if (nPress === 2) {
@@ -124,35 +155,21 @@ export const VideoPlayerPage = ({ activeTorrents, onBack, windowRef }: VideoPlay
     [handleFullscreen]
   );
 
+  // Handle error state
+  if (hasError) {
+    return <ErrorView streamUrl={playerState.streamUrl || ""} />;
+  }
+
   return (
     <AdwNavigationView.Page id="video-player" title="Video Player">
       <AdwToolbarView>
         {!isFullscreen && (
-          <AdwToolbarView.AddTopBar>
-            <AdwHeaderBar titleWidget={<AdwWindowTitle title="Video Player" subtitle="" />}>
-              <AdwHeaderBar.PackEnd>
-                <GtkButton
-                  iconName={isFullscreen ? "view-restore-symbolic" : "view-fullscreen-symbolic"}
-                  tooltipText={isFullscreen ? "Exit Fullscreen (F11)" : "Fullscreen (F11)"}
-                  onClicked={handleFullscreen}
-                />
-              </AdwHeaderBar.PackEnd>
-            </AdwHeaderBar>
-          </AdwToolbarView.AddTopBar>
+          <PlayerHeader isFullscreen={isFullscreen} onFullscreenToggle={handleFullscreen} />
         )}
 
         <GtkBox vexpand hexpand>
           {videoFile ? (
-            <>
-              <GtkVideo
-                file={videoFile}
-                autoplay
-                vexpand
-                hexpand
-                graphicsOffload={Gtk.GraphicsOffloadEnabled.ENABLED}
-              />
-              <GtkGestureClick onPressed={handleVideoPressed} />
-            </>
+            <VideoPlayer videoFile={videoFile} onVideoPressed={handleVideoPressed} />
           ) : (
             <GtkBox vexpand hexpand valign={Gtk.Align.CENTER} halign={Gtk.Align.CENTER}>
               <GtkLabel label="Loading video..." />

@@ -2,13 +2,14 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { env } from "node:process";
 import type { AppConfig } from "../types";
 
 const APP_ID = "com.torrent.client";
 
 /** Get XDG config directory or fallback to ~/.config */
 function getConfigDir(): string {
-  const xdgConfig = process.env.XDG_CONFIG_HOME;
+  const xdgConfig = env.XDG_CONFIG_HOME;
   if (xdgConfig) {
     return join(xdgConfig, APP_ID);
   }

@@ -2,13 +2,14 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { env } from "node:process";
 import type { PersistedTorrent } from "../types";
 
 const APP_ID = "com.torrent.client";
 
 /** Get XDG data directory or fallback to ~/.local/share */
 function getDataDir(): string {
-  const xdgData = process.env.XDG_DATA_HOME;
+  const xdgData = env.XDG_DATA_HOME;
   if (xdgData) {
     return join(xdgData, APP_ID);
   }

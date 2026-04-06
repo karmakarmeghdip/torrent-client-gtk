@@ -6,13 +6,13 @@ import type { AppConfig, PlayerState, Torrent, TorrentStatus, TorrentVideoFile }
 // ============================================
 
 /** Map containing all torrent data - keyed by torrent ID */
-export const torrentsMapAtom = atom<Map<string, Torrent>>(new Map());
+const torrentsMapAtom = atom<Map<string, Torrent>>(new Map());
 
 /** Ordered list of torrent IDs for list rendering */
-export const torrentIdsAtom = atom<string[]>([]);
+const torrentIdsAtom = atom<string[]>([]);
 
 /** App configuration */
-export const configAtom = atom<AppConfig>({
+const configAtom = atom<AppConfig>({
   downloadPath: "",
   autoStart: true,
   notifications: true,
@@ -20,10 +20,10 @@ export const configAtom = atom<AppConfig>({
 });
 
 /** Whether the torrent service is initialized */
-export const serviceInitializedAtom = atom<boolean>(false);
+const serviceInitializedAtom = atom<boolean>(false);
 
 /** Player state atom */
-export const playerStateAtom = atom<PlayerState>({
+const playerStateAtom = atom<PlayerState>({
   torrentId: null,
   fileIndex: null,
   streamUrl: null,
@@ -36,28 +36,32 @@ export const playerStateAtom = atom<PlayerState>({
 // ============================================
 
 /** Get all torrents as array (for list views) */
-export const allTorrentsAtom = atom((get) => {
+const allTorrentsAtom = atom((get) => {
   const ids = get(torrentIdsAtom);
   const map = get(torrentsMapAtom);
-  return ids.map((id) => map.get(id)!).filter(Boolean);
+  return ids.map((id) => map.get(id)).filter((t): t is Torrent => t !== undefined);
 });
 
 // Simple atom cache for granular torrent atoms
 const torrentAtoms = new Map<string, Atom<Torrent | undefined>>();
 
 /** Get a single torrent by ID (granular - components only re-render when this torrent changes) */
-export const getTorrentAtom = (id: string): Atom<Torrent | undefined> => {
+const getTorrentAtom = (id: string): Atom<Torrent | undefined> => {
   if (!torrentAtoms.has(id)) {
     torrentAtoms.set(
       id,
       atom((get) => get(torrentsMapAtom).get(id))
     );
   }
-  return torrentAtoms.get(id)!;
+  const existingAtom = torrentAtoms.get(id);
+  if (!existingAtom) {
+    throw new Error(`Failed to create atom for torrent ${id}`);
+  }
+  return existingAtom;
 };
 
 /** Count of active (downloading/seeding) torrents */
-export const activeTorrentsCountAtom = atom((get) => {
+const activeTorrentsCountAtom = atom((get) => {
   const map = get(torrentsMapAtom);
   return Array.from(map.values()).filter(
     (t) => t.status === "Downloading" || t.status === "Seeding"
@@ -65,7 +69,7 @@ export const activeTorrentsCountAtom = atom((get) => {
 });
 
 /** Count of completed torrents */
-export const completedTorrentsCountAtom = atom((get) => {
+const completedTorrentsCountAtom = atom((get) => {
   const map = get(torrentsMapAtom);
   return Array.from(map.values()).filter((t) => t.progress >= 1.0).length;
 });
@@ -75,7 +79,7 @@ export const completedTorrentsCountAtom = atom((get) => {
 // ============================================
 
 /** Toggle torrent status (pause/resume) */
-export const toggleTorrentStatusAtom = atom(null, (get, set, id: string) => {
+const toggleTorrentStatusAtom = atom(null, (get, set, id: string) => {
   const map = new Map(get(torrentsMapAtom));
   const torrent = map.get(id);
   if (!torrent) {
@@ -88,15 +92,14 @@ export const toggleTorrentStatusAtom = atom(null, (get, set, id: string) => {
   if (torrent.status === "Downloading" || torrent.status === "Seeding") {
     newStatus = "Paused";
     newSpeed = "0 B/s";
+  } else if (torrent.progress >= 1.0) {
+    // Resuming completed torrent
+    newStatus = "Seeding";
+    newSpeed = "0 B/s";
   } else {
-    // Resuming
-    if (torrent.progress >= 1.0) {
-      newStatus = "Seeding";
-      newSpeed = "0 B/s";
-    } else {
-      newStatus = "Downloading";
-      newSpeed = "0 B/s";
-    }
+    // Resuming incomplete torrent
+    newStatus = "Downloading";
+    newSpeed = "0 B/s";
   }
 
   map.set(id, { ...torrent, status: newStatus, speed: newSpeed });
@@ -104,7 +107,7 @@ export const toggleTorrentStatusAtom = atom(null, (get, set, id: string) => {
 });
 
 /** Delete a torrent by ID */
-export const deleteTorrentAtom = atom(null, (get, set, id: string) => {
+const deleteTorrentAtom = atom(null, (get, set, id: string) => {
   const map = new Map(get(torrentsMapAtom));
   map.delete(id);
   set(torrentsMapAtom, map);
@@ -114,7 +117,7 @@ export const deleteTorrentAtom = atom(null, (get, set, id: string) => {
 });
 
 /** Resume all paused torrents */
-export const resumeAllTorrentsAtom = atom(null, (get, set) => {
+const resumeAllTorrentsAtom = atom(null, (get, set) => {
   const map = new Map(get(torrentsMapAtom));
 
   for (const [id, torrent] of map) {
@@ -129,7 +132,7 @@ export const resumeAllTorrentsAtom = atom(null, (get, set) => {
 });
 
 /** Pause all active torrents */
-export const pauseAllTorrentsAtom = atom(null, (get, set) => {
+const pauseAllTorrentsAtom = atom(null, (get, set) => {
   const map = new Map(get(torrentsMapAtom));
 
   for (const [id, torrent] of map) {
@@ -142,7 +145,7 @@ export const pauseAllTorrentsAtom = atom(null, (get, set) => {
 });
 
 /** Update torrent progress (used by webtorrent service) */
-export const updateTorrentProgressAtom = atom(
+const updateTorrentProgressAtom = atom(
   null,
   (
     get,
@@ -166,8 +169,14 @@ export const updateTorrentProgressAtom = atom(
     }
 
     const newProgress = Math.min(progress, 1.0);
-    const newStatus: TorrentStatus =
-      newProgress >= 1.0 ? "Seeding" : torrent.status === "Paused" ? "Paused" : "Downloading";
+    let newStatus: TorrentStatus;
+    if (newProgress >= 1.0) {
+      newStatus = "Seeding";
+    } else if (torrent.status === "Paused") {
+      newStatus = "Paused";
+    } else {
+      newStatus = "Downloading";
+    }
 
     map.set(id, {
       ...torrent,
@@ -182,7 +191,7 @@ export const updateTorrentProgressAtom = atom(
 );
 
 /** Add a new torrent */
-export const addTorrentAtom = atom(null, (get, set, torrent: Torrent) => {
+const addTorrentAtom = atom(null, (get, set, torrent: Torrent) => {
   const map = new Map(get(torrentsMapAtom));
   map.set(torrent.id, torrent);
   set(torrentsMapAtom, map);
@@ -192,23 +201,23 @@ export const addTorrentAtom = atom(null, (get, set, torrent: Torrent) => {
 });
 
 /** Update app configuration */
-export const updateConfigAtom = atom(null, (get, set, updates: Partial<AppConfig>) => {
+const updateConfigAtom = atom(null, (get, set, updates: Partial<AppConfig>) => {
   const current = get(configAtom);
   set(configAtom, { ...current, ...updates });
 });
 
 /** Set the entire config atom */
-export const setConfigAtom = atom(null, (_get, set, config: AppConfig) => {
+const setConfigAtom = atom(null, (_get, set, config: AppConfig) => {
   set(configAtom, config);
 });
 
 /** Set service initialized state */
-export const setServiceInitializedAtom = atom(null, (_get, set, initialized: boolean) => {
+const setServiceInitializedAtom = atom(null, (_get, set, initialized: boolean) => {
   set(serviceInitializedAtom, initialized);
 });
 
 /** Update torrent with video file list after metadata */
-export const setTorrentVideoFilesAtom = atom(
+const setTorrentVideoFilesAtom = atom(
   null,
   (get, set, { id, files }: { id: string; files: TorrentVideoFile[] }) => {
     const map = new Map(get(torrentsMapAtom));
@@ -221,7 +230,7 @@ export const setTorrentVideoFilesAtom = atom(
 );
 
 /** Set active stream */
-export const setActiveStreamAtom = atom(
+const setActiveStreamAtom = atom(
   null,
   (
     get,
@@ -259,7 +268,7 @@ export const setActiveStreamAtom = atom(
 );
 
 /** Close player and stop streaming */
-export const closePlayerAtom = atom(null, (get, set) => {
+const closePlayerAtom = atom(null, (get, set) => {
   const playerState = get(playerStateAtom);
 
   // Reset player state
@@ -276,12 +285,14 @@ export const closePlayerAtom = atom(null, (get, set) => {
     const map = new Map(get(torrentsMapAtom));
     const torrent = map.get(playerState.torrentId);
     if (torrent) {
-      const newStatus: TorrentStatus =
-        torrent.progress >= 1.0
-          ? "Seeding"
-          : torrent.status === "Paused"
-            ? "Paused"
-            : "Downloading";
+      let newStatus: TorrentStatus;
+      if (torrent.progress >= 1.0) {
+        newStatus = "Seeding";
+      } else if (torrent.status === "Paused") {
+        newStatus = "Paused";
+      } else {
+        newStatus = "Downloading";
+      }
       map.set(playerState.torrentId, {
         ...torrent,
         status: newStatus,
@@ -291,3 +302,31 @@ export const closePlayerAtom = atom(null, (get, set) => {
     }
   }
 });
+
+// ============================================
+// Exports
+// ============================================
+
+export {
+  activeTorrentsCountAtom,
+  addTorrentAtom,
+  allTorrentsAtom,
+  closePlayerAtom,
+  completedTorrentsCountAtom,
+  configAtom,
+  deleteTorrentAtom,
+  getTorrentAtom,
+  pauseAllTorrentsAtom,
+  playerStateAtom,
+  resumeAllTorrentsAtom,
+  serviceInitializedAtom,
+  setActiveStreamAtom,
+  setConfigAtom,
+  setServiceInitializedAtom,
+  setTorrentVideoFilesAtom,
+  toggleTorrentStatusAtom,
+  torrentIdsAtom,
+  torrentsMapAtom,
+  updateConfigAtom,
+  updateTorrentProgressAtom,
+};

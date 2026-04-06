@@ -48,7 +48,9 @@ export const PreferencesDialog = ({
           title="Default Save Location"
           subtitle={downloadPath || "~/Downloads"}
           activatable
-          onActivated={() => {}}
+          onActivated={() => {
+            // TODO: Implement folder picker dialog
+          }}
         />
         <AdwSwitchRow
           title="Start downloading automatically"

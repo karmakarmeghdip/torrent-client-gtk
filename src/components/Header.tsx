@@ -42,7 +42,9 @@ export const Header = ({
               <GtkPopoverMenu.MenuItem
                 id="shortcuts"
                 label="Keyboard Shortcuts"
-                onActivate={() => {}}
+                onActivate={() => {
+                  // TODO: Implement keyboard shortcuts dialog
+                }}
               />
             </GtkPopoverMenu.MenuSection>
             <GtkPopoverMenu.MenuSection>

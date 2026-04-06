@@ -83,7 +83,9 @@ export function initializeVideoServer(): boolean {
 /** Shutdown video server */
 export function shutdownVideoServer(): void {
   if (videoServer) {
-    videoServer.close(() => {});
+    videoServer.close(() => {
+      // Server closed callback - no additional cleanup needed
+    });
     videoServer = null;
     serverPort = 0;
     activeStreamingTorrent = null;
@@ -137,7 +139,7 @@ export async function startStreaming(
   }
 
   // Stop any existing streaming first
-  await stopStreaming(activeTorrents);
+  stopStreaming(activeTorrents);
 
   // Prioritize this file for streaming
   file.select();
@@ -160,7 +162,7 @@ export async function startStreaming(
 }
 
 /** Stop streaming current file */
-export async function stopStreaming(activeTorrents: Map<string, WebTorrentTorrent>): Promise<void> {
+export function stopStreaming(activeTorrents: Map<string, WebTorrentTorrent>): void {
   if (!activeStreamingTorrent) {
     return;
   }
