@@ -111,3 +111,8 @@ export const MyComponent = ({ data, onAction }: MyComponentProps) => (
 - See `.agents/skills/developing-gtkx-apps/SKILL.md` for core patterns
 - See `.agents/skills/developing-gtkx-apps/WIDGETS.md` for full widget API
 - See `.agents/skills/developing-gtkx-apps/EXAMPLES.md` for code examples
+
+## Code References
+As a last resort, the entire codebase is available in the `references/` directory:
+- **GTKX**: `references/gtkx/` - Full source code and documentation
+- **webtorrent**: `references/webtorrent/` - Full source code and documentation

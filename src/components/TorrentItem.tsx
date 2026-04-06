@@ -1,6 +1,7 @@
 import * as Gtk from "@gtkx/ffi/gtk";
 import { GtkBox, GtkButton, GtkLabel, GtkProgressBar } from "@gtkx/react";
 import { useTorrentItem } from "../hooks/useTorrentItem";
+import { formatPeersLabel, isActive, shouldShowPeers } from "../utils/torrent";
 import { TorrentFileSelector } from "./TorrentFileSelector";
 
 interface TorrentItemProps {
@@ -17,13 +18,15 @@ export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
     handleToggleStatus,
     handleDelete,
   } = useTorrentItem(torrentId);
+
   if (!torrent) {
     return null;
   }
+
   const { status, videoFiles, name, size, speed, peers, progress } = torrent;
-  const isActive = status === "Downloading" || status === "Seeding" || status === "Streaming";
-  const showPeers = status === "Downloading" || status === "Seeding";
-  const peersLabel = `${status === "Downloading" ? `${speed} - ` : ""}${peers} peers`;
+  const active = isActive(status);
+  const showPeers = shouldShowPeers(status);
+  const peersLabel = formatPeersLabel(status, peers, speed);
 
   return (
     <GtkBox
@@ -59,8 +62,8 @@ export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
             />
           )}
           <GtkButton
-            iconName={isActive ? "media-playback-pause-symbolic" : "media-playback-start-symbolic"}
-            tooltipText={isActive ? "Pause" : "Resume"}
+            iconName={active ? "media-playback-pause-symbolic" : "media-playback-start-symbolic"}
+            tooltipText={active ? "Pause" : "Resume"}
             cssClasses={["circular"]}
             onClicked={handleToggleStatus}
           />

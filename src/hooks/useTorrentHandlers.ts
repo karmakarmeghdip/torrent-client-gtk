@@ -1,9 +1,11 @@
 import { useCallback } from "react";
 import { pauseTorrent, resumeTorrent } from "../services/torrentService";
+import type { TorrentStatus } from "../types";
+import { isActiveTransfer } from "../utils/torrent";
 
 interface Torrent {
   id: string;
-  status: string;
+  status: TorrentStatus;
 }
 
 export function useTorrentHandlers(torrents: Torrent[]) {
@@ -17,7 +19,7 @@ export function useTorrentHandlers(torrents: Torrent[]) {
 
   const handlePauseAll = useCallback(() => {
     for (const t of torrents) {
-      if (t.status === "Downloading" || t.status === "Seeding") {
+      if (isActiveTransfer(t.status)) {
         pauseTorrent(t.id);
       }
     }

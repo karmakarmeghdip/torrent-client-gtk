@@ -8,7 +8,7 @@ import { VideoPlayerPage } from "./components/VideoPlayerPage";
 import { useAppSetup } from "./hooks/useAppSetup";
 import { useTorrentHandlers } from "./hooks/useTorrentHandlers";
 import { getActiveTorrents } from "./services/torrentService";
-import { allTorrentsAtom } from "./store/torrentStore";
+import { allTorrentsAtom } from "./store";
 import { injectStyles } from "./styles";
 
 injectStyles();
@@ -32,6 +32,7 @@ export const App = () => {
     updateDownloadPath,
     goBackFromPlayer,
   } = useAppSetup();
+
   return (
     <AdwApplicationWindow
       title="Torrent Client"

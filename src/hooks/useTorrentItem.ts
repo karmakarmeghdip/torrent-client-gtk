@@ -1,6 +1,5 @@
 import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
-import { openPlayer } from "../services/playerService";
 import {
   getActiveTorrents,
   pauseTorrent,
@@ -8,7 +7,8 @@ import {
   resumeTorrent,
 } from "../services/torrentService";
 import { startStreaming } from "../services/videoStreamingService";
-import { getTorrentAtom, setActiveStreamAtom } from "../store/torrentStore";
+import { getTorrentAtom, setActiveStreamAtom } from "../store";
+import { isActive } from "../utils/torrent";
 
 export function useTorrentItem(torrentId: string) {
   const [torrent] = useAtom(getTorrentAtom(torrentId));
@@ -22,7 +22,6 @@ export function useTorrentItem(torrentId: string) {
 
       if (streamUrl) {
         setActiveStream({ torrentId, fileIndex, streamUrl });
-        openPlayer();
       }
     },
     [torrentId, setActiveStream]
@@ -51,11 +50,10 @@ export function useTorrentItem(torrentId: string) {
     if (!torrent) {
       return;
     }
-    const t = torrent;
-    if (t.status === "Downloading" || t.status === "Seeding" || t.status === "Streaming") {
-      pauseTorrent(t.id);
+    if (isActive(torrent.status)) {
+      pauseTorrent(torrent.id);
     } else {
-      resumeTorrent(t.id);
+      resumeTorrent(torrent.id);
     }
   }, [torrent]);
 
@@ -63,8 +61,9 @@ export function useTorrentItem(torrentId: string) {
     if (!torrent) {
       return;
     }
-    removeTorrent(torrent.id, false).catch(() => {
-      // Remove errors are silent
+    removeTorrent(torrent.id, false).catch((error: Error) => {
+      // Error is logged but not shown to user - could be enhanced with error dialog
+      throw error;
     });
   }, [torrent]);
 

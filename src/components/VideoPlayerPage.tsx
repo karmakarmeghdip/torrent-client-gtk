@@ -16,7 +16,7 @@ import {
 import { useAtom } from "jotai";
 import { useCallback, useMemo, useState } from "react";
 import type { Torrent as WebTorrentTorrent } from "webtorrent";
-import { closePlayerAtom, playerStateAtom } from "../store/torrentStore";
+import { closePlayerAtom, playerStateAtom } from "../store";
 
 interface VideoPlayerPageProps {
   activeTorrents: Map<string, WebTorrentTorrent>;

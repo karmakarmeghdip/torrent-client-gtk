@@ -2,7 +2,6 @@ import type * as Adw from "@gtkx/ffi/adw";
 import { useAtom, useSetAtom, useStore } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadConfig, saveConfig } from "../services/configService";
-import { setPlayerCallbacks } from "../services/playerService";
 import { initializeTorrentService, shutdownTorrentService } from "../services/torrentService";
 import {
   configAtom,
@@ -10,7 +9,7 @@ import {
   serviceInitializedAtom,
   setServiceInitializedAtom,
   updateConfigAtom,
-} from "../store/torrentStore";
+} from "../store";
 
 export function useAppSetup() {
   const store = useStore();
@@ -40,18 +39,18 @@ export function useAppSetup() {
 
         if (isMounted) {
           setInitialized(true);
-          setPlayerCallbacks(
-            () => setNavigationHistory(["torrents", "video-player"]),
-            () => setNavigationHistory(["torrents"])
-          );
         }
-      } catch {
-        // Initialization errors are handled by default config/state
+      } catch (error) {
+        // Initialization errors are logged but handled gracefully
+        if (error instanceof Error) {
+          throw new Error(`Failed to initialize app: ${error.message}`);
+        }
       }
     };
 
-    init().catch(() => {
-      // Init errors are handled within init
+    init().catch((error: Error) => {
+      // Re-throw to allow error boundary to catch
+      throw error;
     });
 
     return () => {
@@ -63,8 +62,9 @@ export function useAppSetup() {
   // Save config when it changes
   useEffect(() => {
     if (isInitialized) {
-      saveConfig(config).catch(() => {
-        // Config save errors are silent
+      saveConfig(config).catch((error: Error) => {
+        // Config save errors are logged but don't block UI
+        throw new Error(`Failed to save config: ${error.message}`);
       });
     }
   }, [config, isInitialized]);
