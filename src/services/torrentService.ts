@@ -4,6 +4,12 @@ import type { Atom, WritableAtom } from "jotai";
 import type { Torrent, TorrentStatus, PersistedTorrent } from "../types";
 import { loadState, saveState, addPersistedTorrent, removePersistedTorrent } from "./stateService";
 import { loadConfig } from "./configService";
+import { 
+  initializeVideoServer, 
+  shutdownVideoServer,
+  setStreamingClient,
+  getVideoFiles,
+} from "./videoStreamingService";
 
 // Store reference to jotai store for direct atom updates
 // This will be set during initialization
@@ -67,14 +73,28 @@ export async function initializeTorrentService(
   // Create WebTorrent client
   client = new WebTorrent();
 
+  // Set client reference for video streaming service
+  setStreamingClient(client);
+
+  // Initialize video streaming server
+  initializeVideoServer();
+
   // Load persisted torrents and restore them
   await restorePersistedTorrents();
 
   console.log("[TorrentService] Initialized");
 }
 
+/** Get the active torrents map */
+export function getActiveTorrents(): Map<string, WebTorrentClient> {
+  return activeTorrents;
+}
+
 /** Shutdown the torrent service */
 export async function shutdownTorrentService(): Promise<void> {
+  // Shutdown video server first
+  shutdownVideoServer();
+
   if (client) {
     // Destroy all torrents
     for (const [id, wt] of activeTorrents) {
@@ -209,12 +229,24 @@ async function startTorrentDownload(
       const map = new Map(jotaiStore!.get(torrentAtoms!.torrentsMapAtom) as Map<string, Torrent>);
       const existing = map.get(id);
       if (existing) {
+        // Detect video files
+        const videoFiles = getVideoFiles(torrent);
+
         map.set(id, {
           ...existing,
           name: torrent.name,
           size,
+          videoFiles: videoFiles.length > 0 ? videoFiles : undefined,
         });
         jotaiStore!.set(torrentAtoms!.torrentsMapAtom, map);
+
+        // Also update via the dedicated atom for video files
+        if (videoFiles.length > 0 && torrentAtoms) {
+          jotaiStore!.set(torrentAtoms.setTorrentVideoFilesAtom, {
+            id,
+            files: videoFiles,
+          });
+        }
 
         // Update persisted state with name
         addPersistedTorrent({

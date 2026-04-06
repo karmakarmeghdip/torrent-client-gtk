@@ -1,4 +1,22 @@
-export type TorrentStatus = "Downloading" | "Seeding" | "Paused" | "Completed" | "Error";
+export type TorrentStatus = "Downloading" | "Seeding" | "Paused" | "Completed" | "Error" | "Streaming";
+
+/** Video file info within a torrent */
+export interface TorrentVideoFile {
+  index: number;
+  name: string;
+  path: string;
+  size: string;
+  type: string;
+}
+
+/** Player state */
+export interface PlayerState {
+  torrentId: string | null;
+  fileIndex: number | null;
+  streamUrl: string | null;
+  isPlaying: boolean;
+  isFullscreen: boolean;
+}
 
 export interface Torrent {
   id: string;
@@ -14,6 +32,10 @@ export interface Torrent {
   downloadPath: string;
   /** Time when torrent was added */
   addedAt: number;
+  /** Available video files in the torrent */
+  videoFiles?: TorrentVideoFile[];
+  /** Currently selected video file index */
+  selectedVideoFile?: number;
 }
 
 /** Persisted torrent data (stored in state.json) */

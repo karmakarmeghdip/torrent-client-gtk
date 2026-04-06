@@ -1,5 +1,5 @@
 import { atom, type Atom } from "jotai";
-import type { Torrent, TorrentStatus, AppConfig } from "../types";
+import type { Torrent, TorrentStatus, AppConfig, PlayerState, TorrentVideoFile } from "../types";
 
 // ============================================
 // Base Atoms
@@ -21,6 +21,15 @@ export const configAtom = atom<AppConfig>({
 
 /** Whether the torrent service is initialized */
 export const serviceInitializedAtom = atom<boolean>(false);
+
+/** Player state atom */
+export const playerStateAtom = atom<PlayerState>({
+  torrentId: null,
+  fileIndex: null,
+  streamUrl: null,
+  isPlaying: false,
+  isFullscreen: false,
+});
 
 // ============================================
 // Derived Atoms
@@ -197,3 +206,88 @@ export const setServiceInitializedAtom = atom(
     set(serviceInitializedAtom, initialized);
   },
 );
+
+/** Update torrent with video file list after metadata */
+export const setTorrentVideoFilesAtom = atom(
+  null,
+  (get, set, { id, files }: { id: string; files: TorrentVideoFile[] }) => {
+    const map = new Map(get(torrentsMapAtom));
+    const torrent = map.get(id);
+    if (torrent) {
+      map.set(id, { ...torrent, videoFiles: files });
+      set(torrentsMapAtom, map);
+    }
+  },
+);
+
+/** Set active stream */
+export const setActiveStreamAtom = atom(
+  null,
+  (
+    get,
+    set,
+    {
+      torrentId,
+      fileIndex,
+      streamUrl,
+    }: {
+      torrentId: string;
+      fileIndex: number;
+      streamUrl: string;
+    },
+  ) => {
+    set(playerStateAtom, {
+      torrentId,
+      fileIndex,
+      streamUrl,
+      isPlaying: true,
+      isFullscreen: false,
+    });
+
+    // Update torrent status to Streaming
+    const map = new Map(get(torrentsMapAtom));
+    const torrent = map.get(torrentId);
+    if (torrent) {
+      map.set(torrentId, {
+        ...torrent,
+        status: "Streaming",
+        selectedVideoFile: fileIndex,
+      });
+      set(torrentsMapAtom, map);
+    }
+  },
+);
+
+/** Close player and stop streaming */
+export const closePlayerAtom = atom(null, (get, set) => {
+  const playerState = get(playerStateAtom);
+
+  // Reset player state
+  set(playerStateAtom, {
+    torrentId: null,
+    fileIndex: null,
+    streamUrl: null,
+    isPlaying: false,
+    isFullscreen: false,
+  });
+
+  // Update torrent status back to appropriate state
+  if (playerState.torrentId) {
+    const map = new Map(get(torrentsMapAtom));
+    const torrent = map.get(playerState.torrentId);
+    if (torrent) {
+      const newStatus: TorrentStatus =
+        torrent.progress >= 1.0
+          ? "Seeding"
+          : torrent.status === "Paused"
+            ? "Paused"
+            : "Downloading";
+      map.set(playerState.torrentId, {
+        ...torrent,
+        status: newStatus,
+        selectedVideoFile: undefined,
+      });
+      set(torrentsMapAtom, map);
+    }
+  }
+});
