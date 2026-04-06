@@ -25,15 +25,11 @@ export const TorrentFileSelector = ({
   onSelect,
   onCancel,
 }: TorrentFileSelectorProps) => (
-  <AdwDialog
-    title={`Play: ${torrentName}`}
-  >
+  <AdwDialog title={`Play: ${torrentName}`}>
     <AdwToolbarView>
       <AdwToolbarView.AddTopBar>
         <AdwHeaderBar
-          titleWidget={
-            <AdwWindowTitle title="Select Video File" subtitle="" />
-          }
+          titleWidget={<AdwWindowTitle title="Select Video File" subtitle="" />}
           showEndTitleButtons={false}
         >
           <AdwHeaderBar.PackStart>
@@ -68,21 +64,13 @@ export const TorrentFileSelector = ({
                 marginBottom={8}
                 valign={Gtk.Align.CENTER}
               >
-                <GtkBox
-                  orientation={Gtk.Orientation.VERTICAL}
-                  hexpand
-                  spacing={4}
-                >
+                <GtkBox orientation={Gtk.Orientation.VERTICAL} hexpand spacing={4}>
                   <GtkLabel
                     label={file.name}
                     halign={Gtk.Align.START}
                     ellipsize={3} // Pango.EllipsizeMode.MIDDLE = 2, but using number for compatibility
                   />
-                  <GtkLabel
-                    label={file.size}
-                    halign={Gtk.Align.START}
-                    cssClasses={["dim-label"]}
-                  />
+                  <GtkLabel label={file.size} halign={Gtk.Align.START} cssClasses={["dim-label"]} />
                 </GtkBox>
                 <GtkButton
                   label="Play"

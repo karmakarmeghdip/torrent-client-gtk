@@ -1,7 +1,7 @@
-import { readFile, writeFile, mkdir } from "fs/promises";
-import { existsSync } from "fs";
-import { join } from "path";
-import { homedir } from "os";
+import { existsSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type { PersistedTorrent } from "../types";
 
 const APP_ID = "com.torrent.client";
@@ -84,7 +84,7 @@ export async function removePersistedTorrent(id: string): Promise<void> {
 /** Update a torrent in persisted state */
 export async function updatePersistedTorrent(
   id: string,
-  updates: Partial<PersistedTorrent>,
+  updates: Partial<PersistedTorrent>
 ): Promise<void> {
   const state = await loadState();
   const index = state.torrents.findIndex((t) => t.id === id);

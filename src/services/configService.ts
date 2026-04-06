@@ -1,7 +1,7 @@
-import { readFile, writeFile, mkdir } from "fs/promises";
-import { existsSync } from "fs";
-import { join } from "path";
-import { homedir } from "os";
+import { existsSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type { AppConfig } from "../types";
 
 const APP_ID = "com.torrent.client";

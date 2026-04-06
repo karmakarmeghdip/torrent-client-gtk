@@ -1,11 +1,16 @@
 import * as Gtk from "@gtkx/ffi/gtk";
 import { GtkBox, GtkButton, GtkLabel, GtkProgressBar } from "@gtkx/react";
 import { useAtom } from "jotai";
-import { useState, useCallback } from "react";
-import { getTorrentAtom, setActiveStreamAtom } from "../store/torrentStore";
-import { pauseTorrent, resumeTorrent, removeTorrent, getActiveTorrents } from "../services/torrentService";
-import { startStreaming } from "../services/videoStreamingService";
+import { useCallback, useState } from "react";
 import { openPlayer } from "../services/playerService";
+import {
+  getActiveTorrents,
+  pauseTorrent,
+  removeTorrent,
+  resumeTorrent,
+} from "../services/torrentService";
+import { startStreaming } from "../services/videoStreamingService";
+import { getTorrentAtom, setActiveStreamAtom } from "../store/torrentStore";
 import { TorrentFileSelector } from "./TorrentFileSelector";
 
 interface TorrentItemProps {
@@ -17,7 +22,9 @@ export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
   const [, setActiveStream] = useAtom(setActiveStreamAtom);
   const [showFileSelector, setShowFileSelector] = useState(false);
 
-  if (!torrent) return null;
+  if (!torrent) {
+    return null;
+  }
 
   const t = torrent;
 
@@ -33,22 +40,27 @@ export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
     removeTorrent(t.id, false);
   };
 
-  const startPlayback = useCallback(async (fileIndex: number) => {
-    const activeTorrents = getActiveTorrents();
-    const streamUrl = await startStreaming(t.id, fileIndex, activeTorrents);
-    
-    if (streamUrl) {
-      setActiveStream({
-        torrentId: t.id,
-        fileIndex,
-        streamUrl,
-      });
-      openPlayer();
-    }
-  }, [t.id, setActiveStream]);
+  const startPlayback = useCallback(
+    async (fileIndex: number) => {
+      const activeTorrents = getActiveTorrents();
+      const streamUrl = await startStreaming(t.id, fileIndex, activeTorrents);
+
+      if (streamUrl) {
+        setActiveStream({
+          torrentId: t.id,
+          fileIndex,
+          streamUrl,
+        });
+        openPlayer();
+      }
+    },
+    [t.id, setActiveStream]
+  );
 
   const handlePlay = useCallback(async () => {
-    if (!t.videoFiles || t.videoFiles.length === 0) return;
+    if (!t.videoFiles || t.videoFiles.length === 0) {
+      return;
+    }
 
     if (t.videoFiles.length === 1) {
       // Single video file - play directly
@@ -59,10 +71,13 @@ export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
     }
   }, [t.videoFiles, startPlayback]);
 
-  const handleSelectFile = useCallback(async (fileIndex: number) => {
-    setShowFileSelector(false);
-    await startPlayback(fileIndex);
-  }, [startPlayback]);
+  const handleSelectFile = useCallback(
+    async (fileIndex: number) => {
+      setShowFileSelector(false);
+      await startPlayback(fileIndex);
+    },
+    [startPlayback]
+  );
 
   return (
     <GtkBox
@@ -75,11 +90,7 @@ export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
     >
       <GtkBox spacing={16} valign={Gtk.Align.CENTER}>
         <GtkBox orientation={Gtk.Orientation.VERTICAL} spacing={4} hexpand>
-          <GtkLabel
-            label={t.name}
-            halign={Gtk.Align.START}
-            cssClasses={["heading"]}
-          />
+          <GtkLabel label={t.name} halign={Gtk.Align.START} cssClasses={["heading"]} />
           <GtkBox spacing={8}>
             <GtkLabel label={t.size} cssClasses={["dim-label"]} />
             <GtkLabel label="•" cssClasses={["dim-label"]} />
@@ -87,19 +98,13 @@ export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
             {t.status === "Downloading" && (
               <>
                 <GtkLabel label="•" cssClasses={["dim-label"]} />
-                <GtkLabel
-                  label={`${t.speed} - ${t.peers} peers`}
-                  cssClasses={["dim-label"]}
-                />
+                <GtkLabel label={`${t.speed} - ${t.peers} peers`} cssClasses={["dim-label"]} />
               </>
             )}
             {t.status === "Seeding" && (
               <>
                 <GtkLabel label="•" cssClasses={["dim-label"]} />
-                <GtkLabel
-                  label={`${t.peers} peers`}
-                  cssClasses={["dim-label"]}
-                />
+                <GtkLabel label={`${t.peers} peers`} cssClasses={["dim-label"]} />
               </>
             )}
           </GtkBox>

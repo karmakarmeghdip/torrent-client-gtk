@@ -1,18 +1,15 @@
-import { 
-  stopStreaming as stopVideoStreaming,
-  getActiveStreamingTorrent,
-} from "./videoStreamingService";
 import { getActiveTorrents } from "./torrentService";
+import {
+  getActiveStreamingTorrent,
+  stopStreaming as stopVideoStreaming,
+} from "./videoStreamingService";
 
 // Store callbacks
 let openPlayerCallback: (() => void) | null = null;
 let closePlayerCallback: (() => void) | null = null;
 
 /** Set callback to open/close player window */
-export function setPlayerCallbacks(
-  openCallback: () => void,
-  closeCallback: () => void,
-): void {
+export function setPlayerCallbacks(openCallback: () => void, closeCallback: () => void): void {
   openPlayerCallback = openCallback;
   closePlayerCallback = closeCallback;
 }
@@ -28,7 +25,7 @@ export function openPlayer(): void {
 export async function stopVideoPlayback(): Promise<void> {
   const activeTorrents = getActiveTorrents();
   await stopVideoStreaming(activeTorrents);
-  
+
   if (closePlayerCallback) {
     closePlayerCallback();
   }

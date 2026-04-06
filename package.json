@@ -7,6 +7,9 @@
     "dev": "gtkx dev src/dev.tsx",
     "build": "gtkx build",
     "typecheck": "tsc --noEmit",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "format": "biome format --write src/",
     "start": "node dist/bundle.js"
   },
   "gtkx": {
@@ -22,6 +25,7 @@
     "webtorrent": "^2.8.5"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
     "@gtkx/cli": "^0.21.0",
     "@gtkx/testing": "^0.21.0",
     "@types/node": "^25.5.2",

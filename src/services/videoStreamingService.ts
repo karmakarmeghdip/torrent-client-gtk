@@ -1,5 +1,5 @@
-import type { Server } from "http";
-import WebTorrent from "webtorrent";
+import type { Server } from "node:http";
+import type WebTorrent from "webtorrent";
 import type { Torrent as WebTorrentTorrent } from "webtorrent";
 import type { TorrentVideoFile } from "../types";
 
@@ -34,24 +34,23 @@ const VIDEO_EXTENSIONS = [
 
 /** Format bytes to human readable string */
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
+  if (bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 /** Set the WebTorrent client reference */
-export function setStreamingClient(
-  wtClient: InstanceType<typeof WebTorrent>,
-): void {
+export function setStreamingClient(wtClient: InstanceType<typeof WebTorrent>): void {
   client = wtClient;
 }
 
 /** Initialize video streaming server */
 export function initializeVideoServer(): boolean {
   if (!client) {
-    console.error("[VideoStreaming] Client not set");
     return false;
   }
   if (videoServer) {
@@ -72,15 +71,11 @@ export function initializeVideoServer(): boolean {
       const address = videoServer?.address();
       if (address && typeof address !== "string") {
         serverPort = address.port;
-        console.log(
-          `[VideoStreaming] Server started on port ${serverPort}`,
-        );
       }
     });
 
     return true;
-  } catch (error) {
-    console.error("[VideoStreaming] Failed to start server:", error);
+  } catch (_error) {
     return false;
   }
 }
@@ -88,9 +83,7 @@ export function initializeVideoServer(): boolean {
 /** Shutdown video server */
 export function shutdownVideoServer(): void {
   if (videoServer) {
-    videoServer.close(() => {
-      console.log("[VideoStreaming] Server stopped");
-    });
+    videoServer.close(() => {});
     videoServer = null;
     serverPort = 0;
     activeStreamingTorrent = null;
@@ -105,9 +98,7 @@ export function isVideoFile(filename: string): boolean {
 }
 
 /** Get video files from a WebTorrent torrent */
-export function getVideoFiles(
-  torrent: WebTorrentTorrent,
-): TorrentVideoFile[] {
+export function getVideoFiles(torrent: WebTorrentTorrent): TorrentVideoFile[] {
   return torrent.files
     .map((file, index) => ({ file, index }))
     .filter(({ file }) => isVideoFile(file.name))
@@ -129,24 +120,19 @@ export function getActiveStreamingTorrent(): string | null {
 export async function startStreaming(
   torrentId: string,
   fileIndex: number,
-  activeTorrents: Map<string, WebTorrentTorrent>,
+  activeTorrents: Map<string, WebTorrentTorrent>
 ): Promise<string | null> {
-  if (!client || !videoServer) {
-    console.error("[VideoStreaming] Server not initialized");
+  if (!(client && videoServer)) {
     return null;
   }
 
   const wt = activeTorrents.get(torrentId);
   if (!wt) {
-    console.error(`[VideoStreaming] Torrent ${torrentId} not found`);
     return null;
   }
 
   const file = wt.files[fileIndex];
   if (!file) {
-    console.error(
-      `[VideoStreaming] File index ${fileIndex} not found in torrent`,
-    );
     return null;
   }
 
@@ -170,17 +156,14 @@ export async function startStreaming(
   activeStreamingTorrent = torrentId;
   activeStreamingFileIndex = fileIndex;
 
-  console.log(`[VideoStreaming] Started streaming: ${file.name}`);
-  console.log(`[VideoStreaming] URL: ${streamUrl}`);
-
   return streamUrl;
 }
 
 /** Stop streaming current file */
-export async function stopStreaming(
-  activeTorrents: Map<string, WebTorrentTorrent>,
-): Promise<void> {
-  if (!activeStreamingTorrent) return;
+export async function stopStreaming(activeTorrents: Map<string, WebTorrentTorrent>): Promise<void> {
+  if (!activeStreamingTorrent) {
+    return;
+  }
 
   const wt = activeTorrents.get(activeStreamingTorrent);
   if (wt && activeStreamingFileIndex !== null) {
@@ -188,9 +171,6 @@ export async function stopStreaming(
     if (file) {
       // Deselect the file to stop prioritization
       file.deselect();
-      console.log(
-        `[VideoStreaming] Stopped streaming: ${file.name}`,
-      );
     }
   }
 

@@ -1,30 +1,30 @@
-import * as Adw from "@gtkx/ffi/adw";
+import type * as Adw from "@gtkx/ffi/adw";
 import { AdwApplicationWindow, AdwNavigationView, AdwToolbarView, quit } from "@gtkx/react";
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useSetAtom, useAtom, useStore } from "jotai";
-import { injectStyles } from "./styles";
+import { useAtom, useSetAtom, useStore } from "jotai";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AboutDialog } from "./components/AboutDialog";
+import { Header } from "./components/Header";
+import { PreferencesDialog } from "./components/PreferencesDialog";
+import { TorrentList } from "./components/TorrentList";
+import { VideoPlayerPage } from "./components/VideoPlayerPage";
+import { loadConfig, saveConfig } from "./services/configService";
+import { setPlayerCallbacks } from "./services/playerService";
+import {
+  getActiveTorrents,
+  initializeTorrentService,
+  pauseTorrent,
+  resumeTorrent,
+  shutdownTorrentService,
+} from "./services/torrentService";
 import {
   allTorrentsAtom,
   configAtom,
-  updateConfigAtom,
+  playerStateAtom,
   serviceInitializedAtom,
   setServiceInitializedAtom,
-  playerStateAtom,
+  updateConfigAtom,
 } from "./store/torrentStore";
-import { 
-  initializeTorrentService, 
-  shutdownTorrentService,
-  pauseTorrent,
-  resumeTorrent,
-  getActiveTorrents,
-} from "./services/torrentService";
-import { loadConfig, saveConfig } from "./services/configService";
-import { setPlayerCallbacks } from "./services/playerService";
-import { Header } from "./components/Header";
-import { TorrentList } from "./components/TorrentList";
-import { PreferencesDialog } from "./components/PreferencesDialog";
-import { AboutDialog } from "./components/AboutDialog";
-import { VideoPlayerPage } from "./components/VideoPlayerPage";
+import { injectStyles } from "./styles";
 
 injectStyles();
 
@@ -56,11 +56,10 @@ export const App = () => {
 
         // Initialize torrent service with jotai store
         await initializeTorrentService(store);
-        
+
         if (isMounted) {
           setInitialized(true);
-          console.log("[App] Torrent service initialized");
-          
+
           // Set up player callbacks
           setPlayerCallbacks(
             () => {
@@ -73,9 +72,7 @@ export const App = () => {
             }
           );
         }
-      } catch (error) {
-        console.error("[App] Failed to initialize:", error);
-      }
+      } catch (_error) {}
     };
 
     init();
@@ -90,9 +87,7 @@ export const App = () => {
   // Save config when it changes
   useEffect(() => {
     if (isInitialized) {
-      saveConfig(config).catch((err) => {
-        console.error("[App] Failed to save config:", err);
-      });
+      saveConfig(config).catch((_err) => {});
     }
   }, [config, isInitialized]);
 
@@ -140,10 +135,7 @@ export const App = () => {
       onClose={quit}
       ref={windowRef}
     >
-      <AdwNavigationView 
-        history={navigationHistory}
-        onHistoryChanged={setNavigationHistory}
-      >
+      <AdwNavigationView history={navigationHistory} onHistoryChanged={setNavigationHistory}>
         <AdwNavigationView.Page id="torrents" title="Torrents">
           <AdwToolbarView>
             <AdwToolbarView.AddTopBar>

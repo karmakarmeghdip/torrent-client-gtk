@@ -1,21 +1,13 @@
-import { useState, useRef } from "react";
-import {
-  GtkBox,
-  GtkButton,
-  GtkEntry,
-  GtkLabel,
-  GtkPopover,
-} from "@gtkx/react";
 import * as Gtk from "@gtkx/ffi/gtk";
+import { GtkBox, GtkButton, GtkEntry, GtkLabel, GtkPopover } from "@gtkx/react";
+import { useRef, useState } from "react";
 import { addTorrent } from "../services/torrentService";
 
 interface AddTorrentPopoverProps {
   downloadPath: string;
 }
 
-export const AddTorrentPopover = ({
-  downloadPath,
-}: AddTorrentPopoverProps) => {
+export const AddTorrentPopover = ({ downloadPath }: AddTorrentPopoverProps) => {
   const [magnetUri, setMagnetUri] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +15,7 @@ export const AddTorrentPopover = ({
 
   const handleAdd = async () => {
     const text = magnetUri.trim();
-    
+
     if (!text) {
       setError("Please enter a magnet link");
       return;
@@ -41,15 +33,13 @@ export const AddTorrentPopover = ({
     try {
       const torrent = await addTorrent(text, downloadPath);
       if (torrent) {
-        console.log("[AddTorrentPopover] Added torrent:", torrent.id);
         setMagnetUri(""); // Clear input on success
         // Close the popover
         popoverRef.current?.popdown();
       } else {
         setError("Failed to add torrent");
       }
-    } catch (err) {
-      console.error("[AddTorrentPopover] Error adding torrent:", err);
+    } catch (_err) {
       setError("An error occurred while adding the torrent");
     } finally {
       setIsAdding(false);
@@ -58,7 +48,9 @@ export const AddTorrentPopover = ({
 
   const handleEntryChanged = (entry: { text?: string }) => {
     setMagnetUri(entry.text || "");
-    if (error) setError(null);
+    if (error) {
+      setError(null);
+    }
   };
 
   return (
@@ -78,11 +70,8 @@ export const AddTorrentPopover = ({
           marginEnd={16}
           widthRequest={400}
         >
-          <GtkLabel
-            label="Enter a magnet link:"
-            halign={Gtk.Align.START}
-          />
-          
+          <GtkLabel label="Enter a magnet link:" halign={Gtk.Align.START} />
+
           <GtkBox spacing={8} valign={Gtk.Align.CENTER}>
             <GtkEntry
               placeholderText="magnet:?xt=urn:btih:..."
@@ -103,13 +92,7 @@ export const AddTorrentPopover = ({
             cssClasses={["dim-label"]}
           />
 
-          {error && (
-            <GtkLabel
-              label={error}
-              halign={Gtk.Align.START}
-              cssClasses={["error"]}
-            />
-          )}
+          {error && <GtkLabel label={error} halign={Gtk.Align.START} cssClasses={["error"]} />}
         </GtkBox>
       </GtkPopover>
     </GtkBox>

@@ -1,4 +1,10 @@
-export type TorrentStatus = "Downloading" | "Seeding" | "Paused" | "Completed" | "Error" | "Streaming";
+export type TorrentStatus =
+  | "Downloading"
+  | "Seeding"
+  | "Paused"
+  | "Completed"
+  | "Error"
+  | "Streaming";
 
 /** Video file info within a torrent */
 export interface TorrentVideoFile {

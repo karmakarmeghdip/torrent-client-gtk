@@ -6,11 +6,12 @@
 bun run dev        # Start dev server with hot reload
 bun run build      # Build for production
 bun run typecheck  # TypeScript type checking (tsc --noEmit)
+bun run lint       # Run Biome linter
+bun run lint:fix   # Run Biome linter with auto-fix
+bun run format     # Format code with Biome
 bun run start      # Run built app (node dist/bundle.js)
 bun install        # Install dependencies
 ```
-
-**No test or lint scripts configured yet.** Add them when introducing testing/linting tools.
 
 ## Testing UI with GTKX MCP
 
@@ -83,6 +84,16 @@ export const MyComponent = ({ data, onAction }: MyComponentProps) => (
 - Always type props interfaces explicitly
 - Use `interface` for object shapes, `type` for unions
 - No `any` - use `unknown` if type is truly dynamic
+
+### Linting with Biome
+- **No `any` types** - Biome enforces `noExplicitAny`
+- **No non-null assertions** - Avoid `!` operator, handle null properly
+- **No empty blocks** - Either implement or add a comment
+- **No `console` in production code** - Use proper error handling
+- **Use `node:` protocol for Node.js builtins** - `import { readFile } from "node:fs/promises"`
+- Run `bun run lint` before committing
+- Run `bun run lint:fix` to auto-fix issues
+- Run `bun run format` to format code
 
 ### GTKX Specifics
 - Widget slots: `<AdwToolbarView.AddTopBar>`, `<GtkPopoverMenu.MenuSection>`

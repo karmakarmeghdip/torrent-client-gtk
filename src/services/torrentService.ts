@@ -1,14 +1,14 @@
-import WebTorrent from "webtorrent";
-import type { Instance as WebTorrentInstance, Torrent as WebTorrentClient } from "webtorrent";
 import type { Atom, WritableAtom } from "jotai";
-import type { Torrent, TorrentStatus, PersistedTorrent } from "../types";
-import { loadState, saveState, addPersistedTorrent, removePersistedTorrent } from "./stateService";
+import type { Torrent as WebTorrentClient, Instance as WebTorrentInstance } from "webtorrent";
+import WebTorrent from "webtorrent";
+import type { PersistedTorrent, Torrent, TorrentStatus } from "../types";
 import { loadConfig } from "./configService";
-import { 
-  initializeVideoServer, 
-  shutdownVideoServer,
-  setStreamingClient,
+import { addPersistedTorrent, loadState, removePersistedTorrent } from "./stateService";
+import {
   getVideoFiles,
+  initializeVideoServer,
+  setStreamingClient,
+  shutdownVideoServer,
 } from "./videoStreamingService";
 
 // Store reference to jotai store for direct atom updates
@@ -35,16 +35,20 @@ const UPDATE_THROTTLE_MS = 500; // Update UI at most every 500ms
 
 /** Format bytes to human readable string */
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
+  if (bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 /** Format speed (bytes/sec) to human readable string */
 function formatSpeed(bytesPerSecond: number): string {
-  if (bytesPerSecond === 0) return "0 B/s";
+  if (bytesPerSecond === 0) {
+    return "0 B/s";
+  }
   return `${formatBytes(bytesPerSecond)}/s`;
 }
 
@@ -54,8 +58,8 @@ function generateTorrentId(magnetUri: string): string {
   let hash = 0;
   for (let i = 0; i < magnetUri.length; i++) {
     const char = magnetUri.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
+    hash = (hash << 5) - hash + char;
+    hash &= hash;
   }
   return `torrent-${Math.abs(hash).toString(36)}-${Date.now().toString(36)}`;
 }
@@ -63,10 +67,13 @@ function generateTorrentId(magnetUri: string): string {
 /** Initialize the torrent service with jotai store reference */
 export async function initializeTorrentService(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  store: { get: <T>(atom: Atom<T>) => T; set: <T, A extends unknown[], R>(atom: WritableAtom<T, A, R>, ...args: A) => R },
+  store: {
+    get: <T>(atom: Atom<T>) => T;
+    set: <T, A extends unknown[], R>(atom: WritableAtom<T, A, R>, ...args: A) => R;
+  }
 ): Promise<void> {
   jotaiStore = store;
-  
+
   // Lazy import atoms to avoid circular dependencies
   torrentAtoms = await import("../store/torrentStore");
 
@@ -81,8 +88,6 @@ export async function initializeTorrentService(
 
   // Load persisted torrents and restore them
   await restorePersistedTorrents();
-
-  console.log("[TorrentService] Initialized");
 }
 
 /** Get the active torrents map */
@@ -97,17 +102,13 @@ export async function shutdownTorrentService(): Promise<void> {
 
   if (client) {
     // Destroy all torrents
-    for (const [id, wt] of activeTorrents) {
-      wt.destroy({}, () => {
-        console.log(`[TorrentService] Destroyed torrent: ${id}`);
-      });
+    for (const [_id, wt] of activeTorrents) {
+      wt.destroy({}, () => {});
     }
     activeTorrents.clear();
 
     // Destroy client
-    client.destroy(() => {
-      console.log("[TorrentService] Client destroyed");
-    });
+    client.destroy(() => {});
     client = null;
   }
 
@@ -117,7 +118,9 @@ export async function shutdownTorrentService(): Promise<void> {
 
 /** Restore persisted torrents from state file */
 async function restorePersistedTorrents(): Promise<void> {
-  if (!torrentAtoms || !jotaiStore) return;
+  if (!(torrentAtoms && jotaiStore)) {
+    return;
+  }
 
   const config = await loadConfig();
   const state = await loadState();
@@ -150,10 +153,9 @@ async function restorePersistedTorrents(): Promise<void> {
 /** Add a new torrent from magnet URI */
 export async function addTorrent(
   magnetUri: string,
-  downloadPath?: string,
+  downloadPath?: string
 ): Promise<Torrent | null> {
-  if (!client || !torrentAtoms || !jotaiStore) {
-    console.error("[TorrentService] Not initialized");
+  if (!(client && torrentAtoms && jotaiStore)) {
     return null;
   }
 
@@ -197,8 +199,7 @@ export async function addTorrent(
     }
 
     return torrent;
-  } catch (error) {
-    console.error("[TorrentService] Failed to add torrent:", error);
+  } catch (_error) {
     return null;
   }
 }
@@ -207,57 +208,60 @@ export async function addTorrent(
 async function startTorrentDownload(
   id: string,
   magnetUri: string,
-  downloadPath: string,
+  downloadPath: string
 ): Promise<void> {
-  if (!client || !torrentAtoms || !jotaiStore) return;
+  if (!(client && torrentAtoms && jotaiStore)) {
+    return;
+  }
 
   // Check if already downloading
   if (activeTorrents.has(id)) {
-    console.log(`[TorrentService] Torrent ${id} already active`);
     return;
   }
 
   try {
     // Add to webtorrent client
-    const wt = client.add(magnetUri, {
-      path: downloadPath,
-    }, (torrent) => {
-      console.log(`[TorrentService] Torrent ready: ${torrent.name}`);
+    const wt = client.add(
+      magnetUri,
+      {
+        path: downloadPath,
+      },
+      (torrent) => {
+        // Update torrent name and size once metadata is available
+        const size = formatBytes(torrent.length);
+        const map = new Map(jotaiStore?.get(torrentAtoms?.torrentsMapAtom) as Map<string, Torrent>);
+        const existing = map.get(id);
+        if (existing) {
+          // Detect video files
+          const videoFiles = getVideoFiles(torrent);
 
-      // Update torrent name and size once metadata is available
-      const size = formatBytes(torrent.length);
-      const map = new Map(jotaiStore!.get(torrentAtoms!.torrentsMapAtom) as Map<string, Torrent>);
-      const existing = map.get(id);
-      if (existing) {
-        // Detect video files
-        const videoFiles = getVideoFiles(torrent);
+          map.set(id, {
+            ...existing,
+            name: torrent.name,
+            size,
+            videoFiles: videoFiles.length > 0 ? videoFiles : undefined,
+          });
+          jotaiStore?.set(torrentAtoms?.torrentsMapAtom, map);
 
-        map.set(id, {
-          ...existing,
-          name: torrent.name,
-          size,
-          videoFiles: videoFiles.length > 0 ? videoFiles : undefined,
-        });
-        jotaiStore!.set(torrentAtoms!.torrentsMapAtom, map);
+          // Also update via the dedicated atom for video files
+          if (videoFiles.length > 0 && torrentAtoms) {
+            jotaiStore?.set(torrentAtoms.setTorrentVideoFilesAtom, {
+              id,
+              files: videoFiles,
+            });
+          }
 
-        // Also update via the dedicated atom for video files
-        if (videoFiles.length > 0 && torrentAtoms) {
-          jotaiStore!.set(torrentAtoms.setTorrentVideoFilesAtom, {
+          // Update persisted state with name
+          addPersistedTorrent({
             id,
-            files: videoFiles,
+            magnetUri,
+            downloadPath,
+            name: torrent.name,
+            addedAt: existing.addedAt,
           });
         }
-
-        // Update persisted state with name
-        addPersistedTorrent({
-          id,
-          magnetUri,
-          downloadPath,
-          name: torrent.name,
-          addedAt: existing.addedAt,
-        });
       }
-    });
+    );
 
     // Store reference
     activeTorrents.set(id, wt);
@@ -268,30 +272,27 @@ async function startTorrentDownload(
     });
 
     wt.on("done", () => {
-      console.log(`[TorrentService] Torrent complete: ${id}`);
       updateTorrentProgress(id, wt);
     });
 
-    wt.on("error", (err) => {
-      console.error(`[TorrentService] Torrent error (${id}):`, err);
+    wt.on("error", (_err) => {
       updateTorrentStatus(id, "Error");
     });
 
-    wt.on("noPeers", (announceType) => {
-      console.log(`[TorrentService] No peers for ${id} (${announceType})`);
-    });
+    wt.on("noPeers", (_announceType) => {});
 
     // Initial update
     updateTorrentProgress(id, wt);
-  } catch (error) {
-    console.error("[TorrentService] Failed to start download:", error);
+  } catch (_error) {
     updateTorrentStatus(id, "Error");
   }
 }
 
 /** Update torrent progress in the store */
 function updateTorrentProgress(id: string, wt: WebTorrentClient): void {
-  if (!torrentAtoms || !jotaiStore) return;
+  if (!(torrentAtoms && jotaiStore)) {
+    return;
+  }
 
   // Throttle updates
   const now = Date.now();
@@ -308,8 +309,10 @@ function updateTorrentProgress(id: string, wt: WebTorrentClient): void {
   // Get current torrent to check its status
   const map = jotaiStore.get(torrentAtoms.torrentsMapAtom) as Map<string, Torrent>;
   const torrent = map.get(id);
-  
-  if (!torrent) return;
+
+  if (!torrent) {
+    return;
+  }
 
   // Determine new status based on progress and current state
   let newStatus: TorrentStatus;
@@ -337,7 +340,9 @@ function updateTorrentProgress(id: string, wt: WebTorrentClient): void {
 
 /** Update torrent status in the store */
 function updateTorrentStatus(id: string, status: TorrentStatus): void {
-  if (!torrentAtoms || !jotaiStore) return;
+  if (!(torrentAtoms && jotaiStore)) {
+    return;
+  }
 
   const map = new Map(jotaiStore.get(torrentAtoms.torrentsMapAtom) as Map<string, Torrent>);
   const torrent = map.get(id);
@@ -353,9 +358,7 @@ export async function pauseTorrent(id: string): Promise<void> {
   if (wt) {
     // WebTorrent doesn't have a true pause, we can only destroy
     // For a real pause/resume, we'd need to store the magnet and re-add
-    wt.destroy({}, () => {
-      console.log(`[TorrentService] Paused torrent: ${id}`);
-    });
+    wt.destroy({}, () => {});
     activeTorrents.delete(id);
   }
   updateTorrentStatus(id, "Paused");
@@ -363,11 +366,15 @@ export async function pauseTorrent(id: string): Promise<void> {
 
 /** Resume a torrent */
 export async function resumeTorrent(id: string): Promise<void> {
-  if (!torrentAtoms || !jotaiStore) return;
+  if (!(torrentAtoms && jotaiStore)) {
+    return;
+  }
 
   const map = jotaiStore.get(torrentAtoms.torrentsMapAtom) as Map<string, Torrent>;
   const torrent = map.get(id);
-  if (!torrent) return;
+  if (!torrent) {
+    return;
+  }
 
   // Update status to "Downloading" immediately so UI shows it's resuming
   // If torrent was completed, it will be "Seeding" once it starts
@@ -379,14 +386,14 @@ export async function resumeTorrent(id: string): Promise<void> {
 
 /** Remove a torrent */
 export async function removeTorrent(id: string, deleteFiles = false): Promise<void> {
-  if (!torrentAtoms || !jotaiStore) return;
+  if (!(torrentAtoms && jotaiStore)) {
+    return;
+  }
 
   // Stop the torrent if active
   const wt = activeTorrents.get(id);
   if (wt) {
-    wt.destroy({ destroyStore: deleteFiles }, () => {
-      console.log(`[TorrentService] Removed torrent: ${id}`);
-    });
+    wt.destroy({ destroyStore: deleteFiles }, () => {});
     activeTorrents.delete(id);
   }
 
