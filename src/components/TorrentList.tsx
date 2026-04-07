@@ -11,7 +11,7 @@ export const TorrentList = () => {
   const items = useMemo(() => torrentIds.map((id) => ({ id, value: id })), [torrentIds]);
 
   return (
-    <GtkScrolledWindow vexpand cssClasses={["view"]}>
+    <GtkScrolledWindow vexpand hexpand cssClasses={["view"]}>
       <GtkListView
         estimatedItemHeight={80}
         items={items}

@@ -41,7 +41,13 @@ export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
     >
       <GtkBox spacing={16} valign={Gtk.Align.CENTER}>
         <GtkBox orientation={Gtk.Orientation.VERTICAL} spacing={4} hexpand>
-          <GtkLabel label={name} halign={Gtk.Align.START} cssClasses={["heading"]} />
+          <GtkLabel
+            label={name}
+            halign={Gtk.Align.START}
+            cssClasses={["heading"]}
+            ellipsize={3}
+            hexpand
+          />
           <GtkBox spacing={8}>
             <GtkLabel label={size} cssClasses={["dim-label"]} />
             <GtkLabel label="•" cssClasses={["dim-label"]} />

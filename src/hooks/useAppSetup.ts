@@ -25,7 +25,7 @@ export function useAppSetup() {
 
   const [showAbout, setShowAbout] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
-  const [navigationHistory, setNavigationHistory] = useState<string[]>(["torrents"]);
+  const [navigationHistory, setNavigationHistory] = useState<string[]>(["main"]);
   const windowRef = useRef<Adw.ApplicationWindow | null>(null);
 
   // Initialize torrent service on mount
@@ -70,7 +70,7 @@ export function useAppSetup() {
     }
     if (playerState.isPlaying) {
       log.info("Player started, navigating to video-player");
-      setNavigationHistory(["torrents", "video-player"]);
+      setNavigationHistory(["main", "video-player"]);
     }
   }, [config, isInitialized, playerState.isPlaying]);
 
