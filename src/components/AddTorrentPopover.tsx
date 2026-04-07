@@ -34,37 +34,39 @@ const AddTorrentForm = ({
   downloadPath,
   onMagnetUriChange,
   onAdd,
-}: AddTorrentFormProps) => (
-  <GtkBox
-    orientation={Gtk.Orientation.VERTICAL}
-    spacing={12}
-    marginTop={16}
-    marginBottom={16}
-    marginStart={16}
-    marginEnd={16}
-    widthRequest={400}
-  >
-    <GtkLabel label="Enter a magnet link:" halign={Gtk.Align.START} />
+}: AddTorrentFormProps) => {
+  return (
+    <GtkBox
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={12}
+      marginTop={16}
+      marginBottom={16}
+      marginStart={16}
+      marginEnd={16}
+      widthRequest={400}
+    >
+      <GtkLabel label="Enter a magnet link:" halign={Gtk.Align.START} />
 
-    <GtkBox spacing={8} valign={Gtk.Align.CENTER}>
-      <GtkEntry
-        placeholderText="magnet:?xt=urn:btih:..."
-        text={magnetUri}
-        onChanged={(entry: { text?: string }) => onMagnetUriChange(entry.text || "")}
-        hexpand
+      <GtkBox spacing={8} valign={Gtk.Align.CENTER}>
+        <GtkEntry
+          placeholderText="magnet:?xt=urn:btih:..."
+          text={magnetUri}
+          onChanged={(entry: { text?: string }) => onMagnetUriChange(entry.text || "")}
+          hexpand
+        />
+        <GtkButton label={isAdding ? "Adding..." : "Add"} onClicked={onAdd} sensitive={!isAdding} />
+      </GtkBox>
+
+      <GtkLabel
+        label={`Save to: ${downloadPath || "~/Downloads"}`}
+        halign={Gtk.Align.START}
+        cssClasses={["dim-label"]}
       />
-      <GtkButton label={isAdding ? "Adding..." : "Add"} onClicked={onAdd} sensitive={!isAdding} />
+
+      {error && <GtkLabel label={error} halign={Gtk.Align.START} cssClasses={["error"]} />}
     </GtkBox>
-
-    <GtkLabel
-      label={`Save to: ${downloadPath || "~/Downloads"}`}
-      halign={Gtk.Align.START}
-      cssClasses={["dim-label"]}
-    />
-
-    {error && <GtkLabel label={error} halign={Gtk.Align.START} cssClasses={["error"]} />}
-  </GtkBox>
-);
+  );
+};
 
 export const AddTorrentPopover = ({ downloadPath }: AddTorrentPopoverProps) => {
   const [magnetUri, setMagnetUri] = useState("");

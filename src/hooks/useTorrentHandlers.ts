@@ -1,27 +1,32 @@
-import { useAtom } from "jotai";
+import { getDefaultStore } from "jotai";
 import { useCallback } from "react";
 import { pauseTorrent, resumeTorrent } from "../services/torrentService";
-import { torrentHandlersInfoAtom } from "../store";
+import { torrentsMapAtom } from "../store/baseAtoms";
 import { isActiveTransfer } from "../utils/torrent";
 
+// Stable callback references that read from store when executed
 export function useTorrentHandlers() {
-  const [torrents] = useAtom(torrentHandlersInfoAtom);
-
   const handleResumeAll = useCallback(() => {
-    for (const t of torrents) {
-      if (t.status === "Paused") {
-        resumeTorrent(t.id);
+    const store = getDefaultStore();
+    const map = store.get(torrentsMapAtom);
+    // Resume all paused torrents
+    for (const [id, torrent] of map) {
+      if (torrent.status === "Paused") {
+        resumeTorrent(id);
       }
     }
-  }, [torrents]);
+  }, []);
 
   const handlePauseAll = useCallback(() => {
-    for (const t of torrents) {
-      if (isActiveTransfer(t.status)) {
-        pauseTorrent(t.id);
+    const store = getDefaultStore();
+    const map = store.get(torrentsMapAtom);
+    // Pause all active torrents
+    for (const [id, torrent] of map) {
+      if (isActiveTransfer(torrent.status)) {
+        pauseTorrent(id);
       }
     }
-  }, [torrents]);
+  }, []);
 
   return { handleResumeAll, handlePauseAll };
 }

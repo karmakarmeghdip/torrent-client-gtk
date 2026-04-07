@@ -24,64 +24,70 @@ export const TorrentFileSelector = ({
   files,
   onSelect,
   onCancel,
-}: TorrentFileSelectorProps) => (
-  <AdwDialog title={`Play: ${torrentName}`}>
-    <AdwToolbarView>
-      <AdwToolbarView.AddTopBar>
-        <AdwHeaderBar
-          titleWidget={<AdwWindowTitle title="Select Video File" subtitle="" />}
-          showEndTitleButtons={false}
+}: TorrentFileSelectorProps) => {
+  return (
+    <AdwDialog title={`Play: ${torrentName}`}>
+      <AdwToolbarView>
+        <AdwToolbarView.AddTopBar>
+          <AdwHeaderBar
+            titleWidget={<AdwWindowTitle title="Select Video File" subtitle="" />}
+            showEndTitleButtons={false}
+          >
+            <AdwHeaderBar.PackStart>
+              <GtkButton label="Cancel" onClicked={onCancel} />
+            </AdwHeaderBar.PackStart>
+          </AdwHeaderBar>
+        </AdwToolbarView.AddTopBar>
+
+        <GtkBox
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={12}
+          marginTop={12}
+          marginBottom={12}
+          marginStart={12}
+          marginEnd={12}
         >
-          <AdwHeaderBar.PackStart>
-            <GtkButton label="Cancel" onClicked={onCancel} />
-          </AdwHeaderBar.PackStart>
-        </AdwHeaderBar>
-      </AdwToolbarView.AddTopBar>
-
-      <GtkBox
-        orientation={Gtk.Orientation.VERTICAL}
-        spacing={12}
-        marginTop={12}
-        marginBottom={12}
-        marginStart={12}
-        marginEnd={12}
-      >
-        <GtkLabel
-          label={`${files.length} video file(s) found:`}
-          halign={Gtk.Align.START}
-          cssClasses={["heading"]}
-        />
-
-        <GtkScrolledWindow vexpand>
-          <GtkListView
-            estimatedItemHeight={60}
-            items={files.map((f) => ({ id: String(f.index), value: f }))}
-            renderItem={(file: TorrentVideoFile) => (
-              <GtkBox
-                orientation={Gtk.Orientation.HORIZONTAL}
-                spacing={12}
-                marginTop={8}
-                marginBottom={8}
-                valign={Gtk.Align.CENTER}
-              >
-                <GtkBox orientation={Gtk.Orientation.VERTICAL} hexpand spacing={4}>
-                  <GtkLabel
-                    label={file.name}
-                    halign={Gtk.Align.START}
-                    ellipsize={3} // Pango.EllipsizeMode.MIDDLE = 2, but using number for compatibility
-                  />
-                  <GtkLabel label={file.size} halign={Gtk.Align.START} cssClasses={["dim-label"]} />
-                </GtkBox>
-                <GtkButton
-                  label="Play"
-                  cssClasses={["suggested-action"]}
-                  onClicked={() => onSelect(file.index)}
-                />
-              </GtkBox>
-            )}
+          <GtkLabel
+            label={`${files.length} video file(s) found:`}
+            halign={Gtk.Align.START}
+            cssClasses={["heading"]}
           />
-        </GtkScrolledWindow>
-      </GtkBox>
-    </AdwToolbarView>
-  </AdwDialog>
-);
+
+          <GtkScrolledWindow vexpand>
+            <GtkListView
+              estimatedItemHeight={60}
+              items={files.map((f) => ({ id: String(f.index), value: f }))}
+              renderItem={(file: TorrentVideoFile) => (
+                <GtkBox
+                  orientation={Gtk.Orientation.HORIZONTAL}
+                  spacing={12}
+                  marginTop={8}
+                  marginBottom={8}
+                  valign={Gtk.Align.CENTER}
+                >
+                  <GtkBox orientation={Gtk.Orientation.VERTICAL} hexpand spacing={4}>
+                    <GtkLabel
+                      label={file.name}
+                      halign={Gtk.Align.START}
+                      ellipsize={3} // Pango.EllipsizeMode.MIDDLE = 2, but using number for compatibility
+                    />
+                    <GtkLabel
+                      label={file.size}
+                      halign={Gtk.Align.START}
+                      cssClasses={["dim-label"]}
+                    />
+                  </GtkBox>
+                  <GtkButton
+                    label="Play"
+                    cssClasses={["suggested-action"]}
+                    onClicked={() => onSelect(file.index)}
+                  />
+                </GtkBox>
+              )}
+            />
+          </GtkScrolledWindow>
+        </GtkBox>
+      </AdwToolbarView>
+    </AdwDialog>
+  );
+};

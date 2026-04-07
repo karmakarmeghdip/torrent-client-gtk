@@ -27,45 +27,47 @@ export const PreferencesDialog = ({
   onAutoStartToggle,
   downloadPath,
   onClosed,
-}: PreferencesDialogProps) => (
-  <AdwPreferencesDialog
-    title="Preferences"
-    onClosed={onClosed}
-    contentWidth={500}
-    contentHeight={400}
-  >
-    <AdwPreferencesPage>
-      <AdwPreferencesGroup title="Appearance">
-        <AdwSwitchRow
-          title="Dark Mode"
-          subtitle="Use dark color scheme"
-          active={darkMode}
-          onActivated={onDarkModeToggle}
-        />
-      </AdwPreferencesGroup>
-      <AdwPreferencesGroup title="Downloads">
-        <AdwActionRow
-          title="Default Save Location"
-          subtitle={downloadPath || "~/Downloads"}
-          activatable
-          onActivated={() => {
-            // TODO: Implement folder picker dialog
-          }}
-        />
-        <AdwSwitchRow
-          title="Start downloading automatically"
-          active={autoStart}
-          onActivated={onAutoStartToggle}
-        />
-      </AdwPreferencesGroup>
-      <AdwPreferencesGroup title="Notifications">
-        <AdwSwitchRow
-          title="Show Notifications"
-          subtitle="When downloads complete"
-          active={notifications}
-          onActivated={onNotificationsToggle}
-        />
-      </AdwPreferencesGroup>
-    </AdwPreferencesPage>
-  </AdwPreferencesDialog>
-);
+}: PreferencesDialogProps) => {
+  return (
+    <AdwPreferencesDialog
+      title="Preferences"
+      onClosed={onClosed}
+      contentWidth={500}
+      contentHeight={400}
+    >
+      <AdwPreferencesPage>
+        <AdwPreferencesGroup title="Appearance">
+          <AdwSwitchRow
+            title="Dark Mode"
+            subtitle="Use dark color scheme"
+            active={darkMode}
+            onActivated={onDarkModeToggle}
+          />
+        </AdwPreferencesGroup>
+        <AdwPreferencesGroup title="Downloads">
+          <AdwActionRow
+            title="Default Save Location"
+            subtitle={downloadPath || "~/Downloads"}
+            activatable
+            onActivated={() => {
+              // TODO: Implement folder picker dialog
+            }}
+          />
+          <AdwSwitchRow
+            title="Start downloading automatically"
+            active={autoStart}
+            onActivated={onAutoStartToggle}
+          />
+        </AdwPreferencesGroup>
+        <AdwPreferencesGroup title="Notifications">
+          <AdwSwitchRow
+            title="Show Notifications"
+            subtitle="When downloads complete"
+            active={notifications}
+            onActivated={onNotificationsToggle}
+          />
+        </AdwPreferencesGroup>
+      </AdwPreferencesPage>
+    </AdwPreferencesDialog>
+  );
+};
