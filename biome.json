@@ -9,6 +9,18 @@
     "ignoreUnknown": true,
     "includes": ["**", "!**/dist/", "!**/node_modules/", "!**/references/"]
   },
+  "overrides": [
+    {
+      "includes": ["vite.config.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    }
+  ],
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
