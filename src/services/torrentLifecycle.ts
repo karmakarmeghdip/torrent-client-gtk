@@ -3,6 +3,7 @@ import type { Torrent as WebTorrentClient } from "webtorrent";
 import type { PersistedTorrent, Torrent } from "../types";
 import { formatBytes, generateIdFromMagnet } from "../utils/format";
 import { loadConfig } from "./configService";
+import { errorService } from "./errorService";
 import { addPersistedTorrent, removePersistedTorrent } from "./stateService";
 import { getClient } from "./torrentClient";
 import { startTorrentDownload } from "./torrentDownload";
@@ -73,7 +74,8 @@ function handleTorrentMetadata(options: MetadataOptions): void {
     addedAt: existing.addedAt,
   };
   addPersistedTorrent(persisted).catch(() => {
-    // Persist errors are silent
+    // Persist errors are non-fatal - show as toast
+    errorService.warn("Failed to save torrent state", "StateService");
   });
 }
 
@@ -132,7 +134,9 @@ export async function addTorrent(
     }
 
     return torrent;
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    errorService.error(`Failed to add torrent: ${message}`, "TorrentLifecycle");
     return null;
   }
 }

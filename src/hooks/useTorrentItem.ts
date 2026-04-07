@@ -1,5 +1,6 @@
 import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
+import { errorService } from "../services/errorService";
 import {
   getActiveTorrents,
   pauseTorrent,
@@ -22,6 +23,8 @@ export function useTorrentItem(torrentId: string) {
 
       if (streamUrl) {
         setActiveStream({ torrentId, fileIndex, streamUrl });
+      } else {
+        errorService.error("Failed to start video streaming", "VideoPlayer");
       }
     },
     [torrentId, setActiveStream]
@@ -62,8 +65,8 @@ export function useTorrentItem(torrentId: string) {
       return;
     }
     removeTorrent(torrent.id, false).catch((error: Error) => {
-      // Error is logged but not shown to user - could be enhanced with error dialog
-      throw error;
+      // Show error toast to user
+      errorService.error(`Failed to remove torrent: ${error.message}`, "TorrentItem");
     });
   }, [torrent]);
 

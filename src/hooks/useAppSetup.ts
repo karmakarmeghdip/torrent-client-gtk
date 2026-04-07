@@ -2,6 +2,7 @@ import type * as Adw from "@gtkx/ffi/adw";
 import { useAtom, useSetAtom, useStore } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadConfig, saveConfig } from "../services/configService";
+import { errorService } from "../services/errorService";
 import { initializeTorrentService, shutdownTorrentService } from "../services/torrentService";
 import {
   configAtom,
@@ -41,16 +42,15 @@ export function useAppSetup() {
           setInitialized(true);
         }
       } catch (error) {
-        // Initialization errors are logged but handled gracefully
-        if (error instanceof Error) {
-          throw new Error(`Failed to initialize app: ${error.message}`);
-        }
+        // Show fatal error dialog for initialization failures
+        const message = error instanceof Error ? error.message : "Unknown error";
+        errorService.fatal(`Failed to initialize app: ${message}`, "AppSetup");
       }
     };
 
     init().catch((error: Error) => {
-      // Re-throw to allow error boundary to catch
-      throw error;
+      // Show fatal error dialog
+      errorService.fatal(`Failed to initialize app: ${error.message}`, "AppSetup");
     });
 
     return () => {
@@ -63,8 +63,8 @@ export function useAppSetup() {
   useEffect(() => {
     if (isInitialized) {
       saveConfig(config).catch((error: Error) => {
-        // Config save errors are logged but don't block UI
-        throw new Error(`Failed to save config: ${error.message}`);
+        // Config save errors are non-fatal - show as toast
+        errorService.error(`Failed to save config: ${error.message}`, "ConfigService");
       });
     }
   }, [config, isInitialized]);

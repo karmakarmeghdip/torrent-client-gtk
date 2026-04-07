@@ -1,5 +1,13 @@
 // Base atoms
 
+// Error service
+export {
+  errorService,
+  useErrorReporter,
+  useFatalErrors,
+  useToasts,
+  withErrorHandling,
+} from "../services/errorService";
 // Action atoms
 export {
   addTorrentAtom,
@@ -32,15 +40,24 @@ export {
   getTorrentAtom,
   getTorrentsByStatusAtom,
 } from "./derivedAtoms";
-
 // Error store
 export {
   type AppError,
-  addErrorAtom,
+  addFatalErrorAtom,
+  addToastAtom,
   clearErrorsAtom,
-  criticalErrorsAtom,
+  clearToastsAtom,
+  createErrorReporter,
+  dismissAllNotificationsAtom,
+  type ErrorReporter,
   type ErrorSeverity,
   errorsAtom,
+  fatalErrorsAtom,
   hasErrorsAtom,
+  hasToastsAtom,
+  recoverableErrorsAtom,
   removeErrorAtom,
+  removeToastAtom,
+  type ToastNotification,
+  toastsAtom,
 } from "./errorStore";

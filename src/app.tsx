@@ -1,14 +1,17 @@
 import { AdwApplicationWindow, AdwNavigationView, AdwToolbarView, quit } from "@gtkx/react";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
+import { useEffect } from "react";
 import { AboutDialog } from "./components/AboutDialog";
+import { ErrorDisplay } from "./components/ErrorDisplay";
 import { Header } from "./components/Header";
 import { PreferencesDialog } from "./components/PreferencesDialog";
 import { TorrentList } from "./components/TorrentList";
 import { VideoPlayerPage } from "./components/VideoPlayerPage";
 import { useAppSetup } from "./hooks/useAppSetup";
 import { useTorrentHandlers } from "./hooks/useTorrentHandlers";
+import { errorService } from "./services/errorService";
 import { getActiveTorrents } from "./services/torrentService";
-import { allTorrentsAtom } from "./store";
+import { addFatalErrorAtom, addToastAtom, allTorrentsAtom, createErrorReporter } from "./store";
 import { injectStyles } from "./styles";
 
 injectStyles();
@@ -33,6 +36,15 @@ export const App = () => {
     goBackFromPlayer,
   } = useAppSetup();
 
+  // Initialize error service reporter
+  const setFatalError = useSetAtom(addFatalErrorAtom);
+  const showToast = useSetAtom(addToastAtom);
+
+  useEffect(() => {
+    const reporter = createErrorReporter(setFatalError, showToast);
+    errorService.setReporter(reporter);
+  }, [setFatalError, showToast]);
+
   return (
     <AdwApplicationWindow
       title="Torrent Client"
@@ -53,6 +65,7 @@ export const App = () => {
                 downloadPath={config.downloadPath}
               />
             </AdwToolbarView.AddTopBar>
+            <ErrorDisplay />
             <TorrentList />
             {showPreferences && (
               <PreferencesDialog
