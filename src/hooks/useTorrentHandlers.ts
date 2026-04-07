@@ -1,14 +1,12 @@
+import { useAtom } from "jotai";
 import { useCallback } from "react";
 import { pauseTorrent, resumeTorrent } from "../services/torrentService";
-import type { TorrentStatus } from "../types";
+import { torrentHandlersInfoAtom } from "../store";
 import { isActiveTransfer } from "../utils/torrent";
 
-interface Torrent {
-  id: string;
-  status: TorrentStatus;
-}
+export function useTorrentHandlers() {
+  const [torrents] = useAtom(torrentHandlersInfoAtom);
 
-export function useTorrentHandlers(torrents: Torrent[]) {
   const handleResumeAll = useCallback(() => {
     for (const t of torrents) {
       if (t.status === "Paused") {

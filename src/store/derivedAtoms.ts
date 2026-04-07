@@ -3,6 +3,11 @@ import type { Torrent, TorrentStatus } from "../types";
 import { isActiveTransfer } from "../utils/torrent";
 import { torrentIdsAtom, torrentsMapAtom } from "./baseAtoms";
 
+interface TorrentHandlerInfo {
+  id: string;
+  status: TorrentStatus;
+}
+
 // Simple atom cache for granular torrent atoms
 const torrentAtoms = new Map<string, Atom<Torrent | undefined>>();
 
@@ -36,6 +41,21 @@ export const allTorrentsAtom = atom((get) => {
   const ids = get(torrentIdsAtom);
   const map = get(torrentsMapAtom);
   return ids.map((id) => map.get(id)).filter((t): t is Torrent => t !== undefined);
+});
+
+/** Minimal torrent info for handlers (id and status only) - doesn't change on progress updates */
+export const torrentHandlersInfoAtom = atom<TorrentHandlerInfo[]>((get) => {
+  const ids = get(torrentIdsAtom);
+  const map = get(torrentsMapAtom);
+  return ids
+    .map((id) => {
+      const torrent = map.get(id);
+      if (!torrent) {
+        return null;
+      }
+      return { id: torrent.id, status: torrent.status };
+    })
+    .filter((t): t is TorrentHandlerInfo => t !== null);
 });
 
 /** Count of active (downloading/seeding) torrents */

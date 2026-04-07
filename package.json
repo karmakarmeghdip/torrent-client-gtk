@@ -10,7 +10,10 @@
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",
-    "start": "node dist/bundle.js"
+    "start": "node dist/bundle.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "gtkx": {
     "appId": "com.torrent.client"
@@ -21,6 +24,7 @@
     "@gtkx/react": "^0.21.0",
     "@types/webtorrent": "^0.110.1",
     "jotai": "^2.19.0",
+    "pino": "^10.3.1",
     "react": "^19.2.4",
     "webtorrent": "^2.8.5"
   },
@@ -28,10 +32,14 @@
     "@biomejs/biome": "^2.4.10",
     "@gtkx/cli": "^0.21.0",
     "@gtkx/testing": "^0.21.0",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
+    "jsdom": "^29.0.2",
+    "pino-pretty": "^13.1.3",
     "typescript": "^6.0.2",
-    "vite": "^8.0.3"
+    "vite": "^8.0.3",
+    "vitest": "^4.1.3"
   },
   "trustedDependencies": [
     "@swc/core",

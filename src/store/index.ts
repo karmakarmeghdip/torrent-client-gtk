@@ -39,6 +39,7 @@ export {
   completedTorrentsCountAtom,
   getTorrentAtom,
   getTorrentsByStatusAtom,
+  torrentHandlersInfoAtom,
 } from "./derivedAtoms";
 // Error store
 export {

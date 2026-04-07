@@ -2,6 +2,7 @@ import type { WritableAtom } from "jotai";
 import type { Torrent as WebTorrentClient } from "webtorrent";
 import type { PersistedTorrent, Torrent } from "../types";
 import { formatBytes, generateIdFromMagnet } from "../utils/format";
+import { createLogger } from "../utils/logger";
 import { loadConfig } from "./configService";
 import { errorService } from "./errorService";
 import { addPersistedTorrent, removePersistedTorrent } from "./stateService";
@@ -9,6 +10,8 @@ import { getClient } from "./torrentClient";
 import { startTorrentDownload } from "./torrentDownload";
 import type { ServiceStore } from "./types";
 import { getVideoFiles } from "./videoStreamingService";
+
+const log = createLogger("torrentLifecycle");
 
 /** Type for store atoms */
 interface StoreAtoms {
@@ -88,16 +91,19 @@ export async function addTorrent(
 ): Promise<Torrent | null> {
   const client = getClient();
   if (!client) {
+    log.error("addTorrent: client not initialized");
     return null;
   }
 
   try {
+    log.info("addTorrent: starting", { magnetUri: magnetUri.substring(0, 50) });
     // Load config to get default download path if not provided
     const config = await loadConfig();
     const path = downloadPath || config.downloadPath;
 
     // Generate unique ID
     const id = generateIdFromMagnet(magnetUri);
+    log.debug("addTorrent: generated id", { id });
 
     // Create initial torrent object
     const torrent: Torrent = {
@@ -121,21 +127,25 @@ export async function addTorrent(
       addedAt: torrent.addedAt,
     };
     await addPersistedTorrent(persisted);
+    log.debug("addTorrent: persisted state");
 
     // Add to jotai store
     store.set(atoms.addTorrentAtom, torrent);
 
     // Start downloading if auto-start is enabled
     if (config.autoStart) {
+      log.debug("addTorrent: auto-start enabled, starting download");
       const onMetadata = (tid: string, wt: WebTorrentClient) => {
         handleTorrentMetadata({ id: tid, wt, magnetUri, downloadPath: path, store, atoms });
       };
       startTorrentDownload({ id, magnetUri, downloadPath: path, store, atoms, onMetadata });
     }
 
+    log.info("addTorrent: completed", { id, name: torrent.name });
     return torrent;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
+    log.error("addTorrent: failed", { error: message });
     errorService.error(`Failed to add torrent: ${message}`, "TorrentLifecycle");
     return null;
   }
@@ -148,6 +158,7 @@ export async function removeTorrent(
   atoms: StoreAtoms,
   deleteFiles = false
 ): Promise<void> {
+  log.info("removeTorrent", { id, deleteFiles });
   // Import here to avoid circular dependency
   const { removeTorrentDownload } = await import("./torrentDownload");
 
@@ -159,6 +170,7 @@ export async function removeTorrent(
 
   // Remove from jotai store
   store.set(atoms.deleteTorrentAtom, id);
+  log.debug("removeTorrent: completed", { id });
 }
 
 /** Restore persisted torrents from state file */
@@ -166,11 +178,26 @@ export async function restorePersistedTorrents(
   store: ServiceStore,
   atoms: StoreAtoms
 ): Promise<void> {
+  log.info("restorePersistedTorrents: starting");
   const config = await loadConfig();
   const { loadState } = await import("./stateService");
   const state = await loadState();
 
+  log.debug("restorePersistedTorrents: found torrents", { count: state.torrents.length });
+
   for (const persisted of state.torrents) {
+    // Skip invalid torrents (missing id or magnetUri)
+    if (!persisted.id) {
+      log.warn("restorePersistedTorrents: skipping torrent without id");
+      continue;
+    }
+    if (!persisted.magnetUri) {
+      log.warn("restorePersistedTorrents: skipping torrent without magnetUri", {
+        id: persisted.id,
+      });
+      continue;
+    }
+
     // Create torrent object
     const torrent: Torrent = {
       id: persisted.id,
@@ -187,6 +214,7 @@ export async function restorePersistedTorrents(
 
     // Add to store
     store.set(atoms.addTorrentAtom, torrent);
+    log.debug("restorePersistedTorrents: restored", { id: persisted.id });
 
     // If auto-start is enabled, start downloading
     if (config.autoStart) {
@@ -197,4 +225,5 @@ export async function restorePersistedTorrents(
       startTorrentDownload({ id, magnetUri, downloadPath, store, atoms, onMetadata });
     }
   }
+  log.info("restorePersistedTorrents: completed");
 }

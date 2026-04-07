@@ -2,6 +2,9 @@ import type { Server } from "node:http";
 import type WebTorrent from "webtorrent";
 import type { Torrent as WebTorrentTorrent } from "webtorrent";
 import type { TorrentVideoFile } from "../types";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("videoStreaming");
 
 // Store reference to torrentService's client
 let client: InstanceType<typeof WebTorrent> | null = null;
@@ -51,13 +54,16 @@ export function setStreamingClient(wtClient: InstanceType<typeof WebTorrent>): v
 /** Initialize video streaming server */
 export function initializeVideoServer(): boolean {
   if (!client) {
+    log.error("initializeVideoServer: client not set");
     return false;
   }
   if (videoServer) {
+    log.debug("initializeVideoServer: server already running");
     return true;
   }
 
   try {
+    log.info("initializeVideoServer: creating server");
     // Create HTTP server using WebTorrent's createServer
     const server = client.createServer({
       origin: "*",
@@ -71,20 +77,24 @@ export function initializeVideoServer(): boolean {
       const address = videoServer?.address();
       if (address && typeof address !== "string") {
         serverPort = address.port;
+        log.info("initializeVideoServer: server listening", { port: serverPort });
       }
     });
 
     return true;
-  } catch (_error) {
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    log.error("initializeVideoServer: failed", { error: msg });
     return false;
   }
 }
 
 /** Shutdown video server */
 export function shutdownVideoServer(): void {
+  log.info("shutdownVideoServer");
   if (videoServer) {
     videoServer.close(() => {
-      // Server closed callback - no additional cleanup needed
+      log.debug("shutdownVideoServer: server closed");
     });
     videoServer = null;
     serverPort = 0;
@@ -124,17 +134,22 @@ export async function startStreaming(
   fileIndex: number,
   activeTorrents: Map<string, WebTorrentTorrent>
 ): Promise<string | null> {
+  log.info("startStreaming", { torrentId, fileIndex });
+
   if (!(client && videoServer)) {
+    log.error("startStreaming: client or server not initialized");
     return null;
   }
 
   const wt = activeTorrents.get(torrentId);
   if (!wt) {
+    log.error("startStreaming: torrent not found in activeTorrents", { torrentId });
     return null;
   }
 
   const file = wt.files[fileIndex];
   if (!file) {
+    log.error("startStreaming: file not found", { torrentId, fileIndex });
     return null;
   }
 
@@ -143,9 +158,11 @@ export async function startStreaming(
 
   // Prioritize this file for streaming
   file.select();
+  log.debug("startStreaming: file selected for streaming", { fileName: file.name });
 
   // Wait for server to be ready
   if (serverPort === 0) {
+    log.debug("startStreaming: waiting for server to be ready");
     // Server is still starting, wait a bit
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
@@ -158,11 +175,13 @@ export async function startStreaming(
   activeStreamingTorrent = torrentId;
   activeStreamingFileIndex = fileIndex;
 
+  log.info("startStreaming: completed", { torrentId, fileIndex, streamUrl });
   return streamUrl;
 }
 
 /** Stop streaming current file */
 export function stopStreaming(activeTorrents: Map<string, WebTorrentTorrent>): void {
+  log.debug("stopStreaming", { activeStreamingTorrent, activeStreamingFileIndex });
   if (!activeStreamingTorrent) {
     return;
   }
@@ -173,6 +192,7 @@ export function stopStreaming(activeTorrents: Map<string, WebTorrentTorrent>): v
     if (file) {
       // Deselect the file to stop prioritization
       file.deselect();
+      log.debug("stopStreaming: file deselected");
     }
   }
 

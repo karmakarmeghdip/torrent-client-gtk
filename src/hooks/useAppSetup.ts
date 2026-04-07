@@ -11,6 +11,9 @@ import {
   setServiceInitializedAtom,
   updateConfigAtom,
 } from "../store";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("useAppSetup");
 
 export function useAppSetup() {
   const store = useStore();
@@ -29,68 +32,64 @@ export function useAppSetup() {
   useEffect(() => {
     let isMounted = true;
 
+    log.info("Initializing torrent service...");
     const init = async () => {
       try {
         const loadedConfig = await loadConfig();
         if (isMounted) {
           setConfig(loadedConfig);
         }
-
         await initializeTorrentService(store);
-
         if (isMounted) {
+          log.info("Torrent service initialized");
           setInitialized(true);
         }
       } catch (error) {
-        // Show fatal error dialog for initialization failures
-        const message = error instanceof Error ? error.message : "Unknown error";
-        errorService.fatal(`Failed to initialize app: ${message}`, "AppSetup");
+        const msg = error instanceof Error ? error.message : "Unknown error";
+        log.error("Init failed", { error: msg });
+        errorService.fatal(`Failed to initialize app: ${msg}`, "AppSetup");
       }
     };
 
     init().catch((error: Error) => {
-      // Show fatal error dialog
+      log.error("Init failed", { error: error.message });
       errorService.fatal(`Failed to initialize app: ${error.message}`, "AppSetup");
     });
 
     return () => {
+      log.info("Shutting down torrent service");
       isMounted = false;
       shutdownTorrentService();
     };
   }, [store, setConfig, setInitialized]);
 
-  // Save config when it changes
+  // Save config + navigate to video player when playing
   useEffect(() => {
     if (isInitialized) {
-      saveConfig(config).catch((error: Error) => {
-        // Config save errors are non-fatal - show as toast
-        errorService.error(`Failed to save config: ${error.message}`, "ConfigService");
-      });
+      saveConfig(config).catch((e: Error) => errorService.error(e.message, "Config"));
     }
-  }, [config, isInitialized]);
+    if (playerState.isPlaying) {
+      log.info("Player started, navigating to video-player");
+      setNavigationHistory(["torrents", "video-player"]);
+    }
+  }, [config, isInitialized, playerState.isPlaying]);
 
-  const toggleDarkMode = useCallback(() => {
-    updateConfig({ darkMode: !config.darkMode });
-  }, [config.darkMode, updateConfig]);
-
-  const toggleNotifications = useCallback(() => {
-    updateConfig({ notifications: !config.notifications });
-  }, [config.notifications, updateConfig]);
-
-  const toggleAutoStart = useCallback(() => {
-    updateConfig({ autoStart: !config.autoStart });
-  }, [config.autoStart, updateConfig]);
-
+  const toggleDarkMode = useCallback(
+    () => updateConfig({ darkMode: !config.darkMode }),
+    [config.darkMode, updateConfig]
+  );
+  const toggleNotifications = useCallback(
+    () => updateConfig({ notifications: !config.notifications }),
+    [config.notifications, updateConfig]
+  );
+  const toggleAutoStart = useCallback(
+    () => updateConfig({ autoStart: !config.autoStart }),
+    [config.autoStart, updateConfig]
+  );
   const updateDownloadPath = useCallback(
-    (path: string) => {
-      updateConfig({ downloadPath: path });
-    },
+    (path: string) => updateConfig({ downloadPath: path }),
     [updateConfig]
   );
-
-  const goBackFromPlayer = useCallback(() => {
-    setNavigationHistory(["torrents"]);
-  }, []);
 
   return {
     config,
@@ -106,6 +105,5 @@ export function useAppSetup() {
     toggleNotifications,
     toggleAutoStart,
     updateDownloadPath,
-    goBackFromPlayer,
   };
 }

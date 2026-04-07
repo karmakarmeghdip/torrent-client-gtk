@@ -27,6 +27,8 @@ export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
   const active = isActive(status);
   const showPeers = shouldShowPeers(status);
   const peersLabel = formatPeersLabel(status, peers, speed);
+  // Only show watch button when torrent is active (not paused)
+  const canWatch = active && videoFiles && videoFiles.length > 0;
 
   return (
     <GtkBox
@@ -53,7 +55,7 @@ export const TorrentItem = ({ torrentId }: TorrentItemProps) => {
           </GtkBox>
         </GtkBox>
         <GtkBox spacing={8} valign={Gtk.Align.CENTER}>
-          {videoFiles && videoFiles.length > 0 && (
+          {canWatch && (
             <GtkButton
               iconName="video-display-symbolic"
               tooltipText="Watch Video"

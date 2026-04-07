@@ -2,8 +2,11 @@ import type { WritableAtom } from "jotai";
 import type { Torrent as WebTorrentClient } from "webtorrent";
 import type { Torrent, TorrentStatus } from "../types";
 import { formatSpeed } from "../utils/format";
+import { createLogger } from "../utils/logger";
 import { getClient } from "./torrentClient";
 import type { ServiceStore } from "./types";
+
+const log = createLogger("torrentDownload");
 
 // Track active WebTorrent instances by torrent ID
 const activeTorrents = new Map<string, WebTorrentClient>();
@@ -153,16 +156,21 @@ export function startTorrentDownload(options: StartDownloadOptions): boolean {
   const { id, magnetUri, downloadPath, store, atoms, onMetadata } = options;
   const client = getClient();
   if (!client) {
+    log.error("startTorrentDownload: client not initialized");
     return false;
   }
 
   // Check if already downloading
   if (activeTorrents.has(id)) {
+    log.debug("startTorrentDownload: already active", { id });
     return true;
   }
 
+  log.info("startTorrentDownload", { id });
+
   try {
     const wt = client.add(magnetUri, { path: downloadPath }, (torrent) => {
+      log.debug("startTorrentDownload: metadata ready", { id, name: torrent.name });
       onMetadata(id, torrent);
     });
 
@@ -171,7 +179,9 @@ export function startTorrentDownload(options: StartDownloadOptions): boolean {
     updateTorrentProgress(id, wt, store, atoms);
 
     return true;
-  } catch {
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    log.error("startTorrentDownload: failed", { id, error: msg });
     updateTorrentStatusInStore(id, "Error", store, atoms);
     return false;
   }
@@ -195,7 +205,14 @@ export function resumeTorrentDownload(options: ResumeDownloadOptions): void {
   const { id, magnetUri, downloadPath, progress, store, atoms, onMetadata } = options;
   const newStatus: TorrentStatus = progress >= 1.0 ? "Seeding" : "Downloading";
   updateTorrentStatusInStore(id, newStatus, store, atoms);
-  startTorrentDownload({ id, magnetUri, downloadPath, store, atoms, onMetadata });
+  startTorrentDownload({
+    id,
+    magnetUri,
+    downloadPath,
+    store,
+    atoms,
+    onMetadata,
+  });
 }
 
 /** Remove a torrent from active downloads */

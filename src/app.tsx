@@ -1,5 +1,5 @@
 import { AdwApplicationWindow, AdwNavigationView, AdwToolbarView, quit } from "@gtkx/react";
-import { useAtom, useSetAtom } from "jotai";
+import { useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { AboutDialog } from "./components/AboutDialog";
 import { ErrorDisplay } from "./components/ErrorDisplay";
@@ -11,14 +11,16 @@ import { useAppSetup } from "./hooks/useAppSetup";
 import { useTorrentHandlers } from "./hooks/useTorrentHandlers";
 import { errorService } from "./services/errorService";
 import { getActiveTorrents } from "./services/torrentService";
-import { addFatalErrorAtom, addToastAtom, allTorrentsAtom, createErrorReporter } from "./store";
+import { addFatalErrorAtom, addToastAtom, closePlayerAtom, createErrorReporter } from "./store";
 import { injectStyles } from "./styles";
+import { createLogger } from "./utils/logger";
 
 injectStyles();
 
+const log = createLogger("app");
+
 export const App = () => {
-  const [torrents] = useAtom(allTorrentsAtom);
-  const { handleResumeAll, handlePauseAll } = useTorrentHandlers(torrents);
+  const { handleResumeAll, handlePauseAll } = useTorrentHandlers();
   const {
     config,
     playerState,
@@ -33,17 +35,38 @@ export const App = () => {
     toggleNotifications,
     toggleAutoStart,
     updateDownloadPath,
-    goBackFromPlayer,
   } = useAppSetup();
 
-  // Initialize error service reporter
   const setFatalError = useSetAtom(addFatalErrorAtom);
   const showToast = useSetAtom(addToastAtom);
+  const closePlayer = useSetAtom(closePlayerAtom);
 
   useEffect(() => {
+    log.debug("App mounted");
     const reporter = createErrorReporter(setFatalError, showToast);
     errorService.setReporter(reporter);
   }, [setFatalError, showToast]);
+
+  useEffect(() => {
+    log.debug("Player state changed", {
+      isPlaying: playerState.isPlaying,
+      torrentId: playerState.torrentId,
+    });
+  }, [playerState.isPlaying, playerState.torrentId]);
+
+  useEffect(() => {
+    log.debug("Navigation history changed", { history: navigationHistory });
+  }, [navigationHistory]);
+
+  // Close player when navigating away from video-player page
+  const handleHistoryChanged = (newHistory: string[]) => {
+    log.debug("handleHistoryChanged", { newHistory, isPlaying: playerState.isPlaying });
+    setNavigationHistory(newHistory);
+    if (!newHistory.includes("video-player") && playerState.isPlaying) {
+      log.info("Navigated away from video-player, closing player");
+      closePlayer();
+    }
+  };
 
   return (
     <AdwApplicationWindow
@@ -53,7 +76,7 @@ export const App = () => {
       onClose={quit}
       ref={windowRef}
     >
-      <AdwNavigationView history={navigationHistory} onHistoryChanged={setNavigationHistory}>
+      <AdwNavigationView history={navigationHistory} onHistoryChanged={handleHistoryChanged}>
         <AdwNavigationView.Page id="torrents" title="Torrents">
           <AdwToolbarView>
             <AdwToolbarView.AddTopBar>
@@ -84,11 +107,7 @@ export const App = () => {
           </AdwToolbarView>
         </AdwNavigationView.Page>
         {playerState.isPlaying && (
-          <VideoPlayerPage
-            activeTorrents={getActiveTorrents()}
-            onBack={goBackFromPlayer}
-            windowRef={windowRef}
-          />
+          <VideoPlayerPage activeTorrents={getActiveTorrents()} windowRef={windowRef} />
         )}
       </AdwNavigationView>
     </AdwApplicationWindow>

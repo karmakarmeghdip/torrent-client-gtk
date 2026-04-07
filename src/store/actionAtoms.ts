@@ -1,5 +1,6 @@
 import { atom } from "jotai";
 import type { AppConfig, Torrent, TorrentStatus } from "../types";
+import { createLogger } from "../utils/logger";
 import {
   configAtom,
   playerStateAtom,
@@ -9,11 +10,14 @@ import {
 } from "./baseAtoms";
 import { clearTorrentAtom } from "./derivedAtoms";
 
+const log = createLogger("store");
+
 /** Toggle torrent status (pause/resume) */
 export const toggleTorrentStatusAtom = atom(null, (get, set, id: string) => {
   const map = get(torrentsMapAtom);
   const torrent = map.get(id);
   if (!torrent) {
+    log.warn("toggleTorrentStatus: torrent not found", id);
     return;
   }
 
@@ -31,11 +35,13 @@ export const toggleTorrentStatusAtom = atom(null, (get, set, id: string) => {
     newSpeed = "0 B/s";
   }
 
+  log.debug("toggleTorrentStatus", { id, from: torrent.status, to: newStatus });
   set(torrentsMapAtom, new Map(map).set(id, { ...torrent, status: newStatus, speed: newSpeed }));
 });
 
 /** Delete a torrent by ID */
 export const deleteTorrentAtom = atom(null, (get, set, id: string) => {
+  log.info("deleteTorrent", { id });
   const map = get(torrentsMapAtom);
   const newMap = new Map(map);
   newMap.delete(id);
@@ -44,7 +50,6 @@ export const deleteTorrentAtom = atom(null, (get, set, id: string) => {
   const ids = get(torrentIdsAtom).filter((torrentId) => torrentId !== id);
   set(torrentIdsAtom, ids);
 
-  // Clear from atom cache to prevent memory leak
   clearTorrentAtom(id);
 });
 
@@ -98,6 +103,7 @@ export const updateTorrentProgressAtom = atom(
     const map = get(torrentsMapAtom);
     const torrent = map.get(id);
     if (!torrent) {
+      log.warn("updateTorrentProgress: torrent not found", { id, progress });
       return;
     }
 
@@ -126,6 +132,7 @@ export const updateTorrentProgressAtom = atom(
 
 /** Add a new torrent */
 export const addTorrentAtom = atom(null, (get, set, torrent: Torrent) => {
+  log.info("addTorrent", { id: torrent.id, name: torrent.name });
   const map = get(torrentsMapAtom);
   set(torrentsMapAtom, new Map(map).set(torrent.id, torrent));
 
@@ -160,7 +167,13 @@ export const setTorrentVideoFilesAtom = atom(
       files,
     }: {
       id: string;
-      files: Array<{ index: number; name: string; path: string; size: string; type: string }>;
+      files: Array<{
+        index: number;
+        name: string;
+        path: string;
+        size: string;
+        type: string;
+      }>;
     }
   ) => {
     const map = get(torrentsMapAtom);
@@ -175,7 +188,7 @@ export const setTorrentVideoFilesAtom = atom(
 export const setActiveStreamAtom = atom(
   null,
   (
-    get,
+    _get,
     set,
     {
       torrentId,
@@ -187,6 +200,7 @@ export const setActiveStreamAtom = atom(
       streamUrl: string;
     }
   ) => {
+    log.info("setActiveStream", { torrentId, fileIndex, streamUrl });
     set(playerStateAtom, {
       torrentId,
       fileIndex,
@@ -194,28 +208,13 @@ export const setActiveStreamAtom = atom(
       isPlaying: true,
       isFullscreen: false,
     });
-
-    // Update torrent status to Streaming
-    const map = get(torrentsMapAtom);
-    const torrent = map.get(torrentId);
-    if (torrent) {
-      set(
-        torrentsMapAtom,
-        new Map(map).set(torrentId, {
-          ...torrent,
-          status: "Streaming",
-          selectedVideoFile: fileIndex,
-        })
-      );
-    }
   }
 );
 
 /** Close player and stop streaming */
 export const closePlayerAtom = atom(null, (get, set) => {
   const playerState = get(playerStateAtom);
-
-  // Reset player state
+  log.info("closePlayer", { torrentId: playerState.torrentId });
   set(playerStateAtom, {
     torrentId: null,
     fileIndex: null,
@@ -223,28 +222,4 @@ export const closePlayerAtom = atom(null, (get, set) => {
     isPlaying: false,
     isFullscreen: false,
   });
-
-  // Update torrent status back to appropriate state
-  if (playerState.torrentId) {
-    const map = get(torrentsMapAtom);
-    const torrent = map.get(playerState.torrentId);
-    if (torrent) {
-      let newStatus: TorrentStatus;
-      if (torrent.progress >= 1.0) {
-        newStatus = "Seeding";
-      } else if (torrent.status === "Paused") {
-        newStatus = "Paused";
-      } else {
-        newStatus = "Downloading";
-      }
-      set(
-        torrentsMapAtom,
-        new Map(map).set(playerState.torrentId, {
-          ...torrent,
-          status: newStatus,
-          selectedVideoFile: undefined,
-        })
-      );
-    }
-  }
 });

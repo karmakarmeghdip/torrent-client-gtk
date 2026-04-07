@@ -6,12 +6,8 @@ export const ACTIVE_TRANSFER_STATUSES: readonly TorrentStatus[] = [
   "Seeding",
 ] as const;
 
-/** Active statuses (downloading, seeding, or streaming) */
-export const ACTIVE_STATUSES: readonly TorrentStatus[] = [
-  "Downloading",
-  "Seeding",
-  "Streaming",
-] as const;
+/** Active statuses (downloading or seeding) */
+export const ACTIVE_STATUSES: readonly TorrentStatus[] = ["Downloading", "Seeding"] as const;
 
 /** Check if status represents active data transfer */
 export function isActiveTransfer(status: TorrentStatus): boolean {
@@ -40,9 +36,6 @@ export function isCompleted(torrent: Torrent): boolean {
 
 /** Get display status for a torrent */
 export function getDisplayStatus(torrent: Torrent): string {
-  if (torrent.status === "Streaming") {
-    return "Streaming";
-  }
   if (isCompleted(torrent)) {
     return torrent.status === "Seeding" ? "Seeding" : "Completed";
   }

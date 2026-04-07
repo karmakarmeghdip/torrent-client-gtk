@@ -16,11 +16,10 @@ import {
 import { useAtom } from "jotai";
 import { useCallback, useMemo, useState } from "react";
 import type { Torrent as WebTorrentTorrent } from "webtorrent";
-import { closePlayerAtom, playerStateAtom } from "../store";
+import { playerStateAtom } from "../store";
 
 interface VideoPlayerPageProps {
   activeTorrents: Map<string, WebTorrentTorrent>;
-  onBack: () => void;
   windowRef?: React.RefObject<Adw.ApplicationWindow | null>;
 }
 
@@ -113,11 +112,9 @@ const VideoPlayer = ({ videoFile, onVideoPressed }: VideoPlayerProps) => (
 
 export const VideoPlayerPage = ({
   activeTorrents: _activeTorrents,
-  onBack: _onBack,
   windowRef,
 }: VideoPlayerPageProps) => {
   const [playerState] = useAtom(playerStateAtom);
-  const [, _closePlayer] = useAtom(closePlayerAtom);
   const [hasError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 

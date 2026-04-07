@@ -66,6 +66,14 @@ export async function saveState(torrents: PersistedTorrent[]): Promise<void> {
 
 /** Add a torrent to persisted state */
 export async function addPersistedTorrent(torrent: PersistedTorrent): Promise<void> {
+  // Validate required fields
+  if (!torrent.id) {
+    return;
+  }
+  if (!torrent.magnetUri) {
+    return;
+  }
+
   const state = await loadState();
   // Check if already exists
   const exists = state.torrents.some((t) => t.id === torrent.id);
